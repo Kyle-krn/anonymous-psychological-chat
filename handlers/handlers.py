@@ -5,7 +5,6 @@ from keyboard import *
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-system_message = ('Настройки', 'Я хочу помочь', 'Мне нужна помощь')
 
 
 def system_message_filter(message):
