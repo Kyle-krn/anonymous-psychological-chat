@@ -11,7 +11,7 @@ from settings import TELEGRAM_TOKEN
 
 if __name__ == '__main__':
     WEBHOOK_HOST = '178.155.4.121'
-    WEBHOOK_PORT = 443  # 443, 80, 88 или 8443 (порт должен быть открыт!)
+    WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
     WEBHOOK_LISTEN = '178.155.4.121'  # На некоторых серверах придется указывать такой же IP, что и выше
 
     WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Путь к сертификату
