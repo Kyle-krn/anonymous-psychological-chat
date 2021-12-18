@@ -4,7 +4,9 @@ def main_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton('Найти собеседника')
     button1 = types.KeyboardButton('Настройки')
+    button2 = types.KeyboardButton('Служба поддержки')
     keyboard.add(button, button1)
+    keyboard.add(button2)
     return keyboard
 
 
@@ -12,15 +14,19 @@ def settings_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton('Я хочу помочь')
     button1 = types.KeyboardButton('Мне нужна помощь')
+    button2 = types.KeyboardButton('Мой рейтинг')
+    button3 = types.KeyboardButton('Назад')
     keyboard.add(button, button1)
+    keyboard.add(button2)
+    keyboard.add(button3)
     return keyboard
 
 
-def control_companion():
+def control_companion(next=True):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # button = types.KeyboardButton('Заблокировать собеседника')
-    button1 = types.KeyboardButton('Следующий собеседник')
+    if next:
+        button1 = types.KeyboardButton('Следующий собеседник')
+        keyboard.add(button1)
     button2 = types.KeyboardButton('Стоп')
-    keyboard.add(button1)
     keyboard.add(button2)
     return keyboard

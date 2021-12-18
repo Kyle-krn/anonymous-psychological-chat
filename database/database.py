@@ -97,7 +97,7 @@ class DBclient:
         user = self.get_user_on_id(user_id)
         self.db.users.update_one({'user_id': user['user_id']}, {'$set': {'last_companion_id': user['companion_id']}})
         self.db.users.update_one({'user_id': user['companion_id']}, {'$set': {'last_companion_id': user['user_id'], 'search_companion': False, 'companion_id': None}})
-        return self.search_companion(user_id)
+        # return self.search_companion(user_id)
 
 
     
