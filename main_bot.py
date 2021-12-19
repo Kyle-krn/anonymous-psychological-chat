@@ -3,52 +3,87 @@
 # from settings import TELEGRAM_TOKEN
 
 # if __name__ == '__main__':
+#     bot.remove_webhook()
 #     bot.polling(none_stop=True)
 
 import telebot
-import cherrypy
-from settings import TELEGRAM_TOKEN
+import flask
+import logging
+import time
+from settings import TELEGRAM_TOKEN, HOST
+
+
 
 if __name__ == '__main__':
-    WEBHOOK_HOST = '178.155.4.121'
-    WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
-    WEBHOOK_LISTEN = '178.155.4.121'  # На некоторых серверах придется указывать такой же IP, что и выше
+    WEBHOOK_HOST = HOST
+    WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443 (port need to be 'open')
+    WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
 
-    WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Путь к сертификату
-    WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Путь к приватному ключу
+    WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
+    WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
+
+    # Quick'n'dirty SSL certificate generation:
+    #
+    # openssl genrsa -out webhook_pkey.pem 2048
+    # openssl req -new -x509 -days 3650 -key webhook_pkey.pem -out webhook_cert.pem
+    #
+    # When asked for "Common Name (e.g. server FQDN or YOUR name)" you should reply
+    # with the same value in you put in WEBHOOK_HOST
 
     WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
     WEBHOOK_URL_PATH = "/%s/" % (TELEGRAM_TOKEN)
 
+    logger = telebot.logger
+    telebot.logger.setLevel(logging.INFO)
+
     bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-    class WebhookServer(object):
-        @cherrypy.expose
-        def index(self):
-            if 'content-length' in cherrypy.request.headers and \
-                            'content-type' in cherrypy.request.headers and \
-                            cherrypy.request.headers['content-type'] == 'application/json':
-                length = int(cherrypy.request.headers['content-length'])
-                json_string = cherrypy.request.body.read(length).decode("utf-8")
-                update = telebot.types.Update.de_json(json_string)
-                # Эта функция обеспечивает проверку входящего сообщения
-                bot.process_new_updates([update])
-                return ''
-            else:
-                raise cherrypy.HTTPError(403)
+    app = flask.Flask(__name__)
 
 
+    # Empty webserver index, return nothing, just http 200
+    @app.route('/', methods=['GET', 'HEAD'])
+    def index():
+        return ''
+
+
+    # Process webhook calls
+    @app.route(WEBHOOK_URL_PATH, methods=['POST'])
+    def webhook():
+        if flask.request.headers.get('content-type') == 'application/json':
+            json_string = flask.request.get_data().decode('utf-8')
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+            return ''
+        else:
+            flask.abort(403)
+
+
+    # Handle '/start' and '/help'
+    @bot.message_handler(commands=['help', 'start'])
+    def send_welcome(message):
+        bot.reply_to(message,
+                    ("Hi there, I am EchoBot.\n"
+                    "I am here to echo your kind words back to you."))
+
+
+    # Handle all other messages
+    @bot.message_handler(func=lambda message: True, content_types=['text'])
+    def echo_message(message):
+        bot.reply_to(message, message.text)
+
+
+    # Remove webhook, it fails sometimes the set if there is a previous webhook
     bot.remove_webhook()
 
+    time.sleep(2)
+
+    # Set webhook
     bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,
                     certificate=open(WEBHOOK_SSL_CERT, 'r'))
 
-    cherrypy.config.update({
-        'server.socket_host': WEBHOOK_LISTEN,
-        'server.socket_port': WEBHOOK_PORT,
-        'server.ssl_module': 'builtin',
-        'server.ssl_certificate': WEBHOOK_SSL_CERT,
-        'server.ssl_private_key': WEBHOOK_SSL_PRIV
-    })
-
-    cherrypy.quickstart(WebhookServer(), WEBHOOK_URL_PATH, {'/': {}})
+    # Start flask server
+    app.run(host=WEBHOOK_LISTEN,
+            port=WEBHOOK_PORT,
+            ssl_context=(WEBHOOK_SSL_CERT, WEBHOOK_SSL_PRIV),
+            debug=True)
