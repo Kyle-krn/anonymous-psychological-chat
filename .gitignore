@@ -1,4 +1,6 @@
 venv/
 __pycache__/
 **/__pycache__/
+webhook_cert.pem
+webhook_pkey.pem
 settings.py
