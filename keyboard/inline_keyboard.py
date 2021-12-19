@@ -16,6 +16,13 @@ def rating_keyboard():
     keyboard.add(button, button1)
     return keyboard
 
+def verification_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='Верифицировать', callback_data='verification~yes')
+    button1 = types.InlineKeyboardButton(text='Нет, спасибо', callback_data='verification~no')
+    keyboard.add(button, button1)
+    return keyboard
+
 def support_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Нажмите что бы связаться со службой тех. поддержки', url='https://t.me/kyle_krn')

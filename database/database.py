@@ -1,10 +1,12 @@
 from pymongo import MongoClient
 from settings import MONGO_LINK
+from datetime import datetime
 
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
         self.db = self.client['test_chat']
+
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -33,7 +35,9 @@ class DBclient:
                 'rating': 0,                            # Рейтинг пользователя
                 'last_companion_id': None,              # Уникальный id последнего собеседника
                 'block_companion': [],                  # Список уникальных id юзеров в блоке 
-                'data_rating_companion': []             # Скалдывается информация о сообщениях рейтинга и к какому юзеру сообщение относится -- типа {'user_id': 0000000000, 'message_id': 0000000}
+                'data_rating_companion': [],             # Скалдывается информация о сообщениях рейтинга и к какому юзеру сообщение относится -- типа {'user_id': 0000000000, 'message_id': 0000000}
+                'last_action_date': None,
+                'start_date': str(datetime.now().isoformat(' ', 'seconds'))
             }
             self.db.users.insert_one(user)
         return user
@@ -98,6 +102,11 @@ class DBclient:
         self.db.users.update_one({'user_id': user['user_id']}, {'$set': {'last_companion_id': user['companion_id']}})
         self.db.users.update_one({'user_id': user['companion_id']}, {'$set': {'last_companion_id': user['user_id'], 'search_companion': False, 'companion_id': None}})
         # return self.search_companion(user_id)
+    
+    def update_last_action_date(self, user_id):
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'last_action_date': str(datetime.now().isoformat(' ', 'seconds'))}})
+
+    
 
 
     
