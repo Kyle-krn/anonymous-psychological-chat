@@ -1,6 +1,9 @@
 venv/
 __pycache__/
 **/__pycache__/
+test_img/
+flask_module/flask_settings.py
+img/
 webhook_cert.pem
 webhook_pkey.pem
 settings.py

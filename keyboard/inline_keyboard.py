@@ -28,3 +28,9 @@ def support_keyboard():
     button = types.InlineKeyboardButton(text='Нажмите что бы связаться со службой тех. поддержки', url='https://t.me/kyle_krn')
     keyboard.add(button)
     return keyboard
+
+def cancel_next_handlers():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    keyboard.add(button)
+    return keyboard

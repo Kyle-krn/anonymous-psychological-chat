@@ -1,12 +1,13 @@
 from handlers.handlers import bot
 from database import db
-
-
+import os
+from pathlib import Path
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'voice', 'sticker', 'video', 'video_note'])
 def chat(message):
     user = db.get_or_create_user(message.chat)
-    db.update_last_action_date(message.chat.id) 
+    db.update_last_action_date(message.chat.id)
+
     if not user['companion_id']:
         return
     if message.text:

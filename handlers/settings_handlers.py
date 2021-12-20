@@ -15,7 +15,13 @@ def i_want_help(message):
     db.update_last_action_date(message.chat.id)
     db.helper(message.chat.id, True)
     bot.send_message(chat_id=message.chat.id, text='Ваша роль - Я хочу помочь', reply_markup=main_keyboard())
-    bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт ', reply_markup=verification_keyboard())
+    user = db.get_user_on_id(message.chat.id)
+    if user['verified_psychologist'] is False:
+        bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт ', reply_markup=verification_keyboard())
+    elif user['verified_psychologist'] == 'under_consideration':
+        bot.send_message(chat_id=message.chat.id, text='Ваша заявка на верификацию находтся на рассмотрении.')
+    elif user['verified_psychologist'] is True:
+        bot.send_message(chat_id=message.chat.id, text='Ваш аккаунт верифицирован.')
 
 
 @bot.message_handler(regexp="^(Мне нужна помощь)$")
@@ -23,7 +29,7 @@ def i_need_help(message):
     if system_message_filter(message):  return
     db.update_last_action_date(message.chat.id)
     db.helper(message.chat.id, False)
-    bot.send_message(chat_id=message.chat.id, text='Ваша роль - мне нужна помощь', reply_markup=main_keyboard())
+    bot.send_message(chat_id=message.chat.id, text='Ваша роль - мне нужна помощь.', reply_markup=main_keyboard())
 
 
 @bot.message_handler(regexp="^(Мой рейтинг)$")

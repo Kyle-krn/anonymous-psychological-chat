@@ -12,6 +12,7 @@ import logging
 import time
 from settings import TELEGRAM_TOKEN, HOST
 from handlers import bot
+from flask_module import app
 
 
 
@@ -37,16 +38,16 @@ if __name__ == '__main__':
     logger = telebot.logger
     telebot.logger.setLevel(logging.INFO)
 
-    app = flask.Flask(__name__)
+    # app = flask.Flask(__name__)
 
 
     # Empty webserver index, return nothing, just http 200
-    @app.route('/', methods=['GET', 'HEAD'])
-    def index():
-        return ''
+    # @app.route('/', methods=['GET', 'HEAD'])
+    # def index():
+    #     return 'Привет'
 
 
-    # Process webhook calls
+    # # Process webhook calls
     @app.route(WEBHOOK_URL_PATH, methods=['POST'])
     def webhook():
         if flask.request.headers.get('content-type') == 'application/json':

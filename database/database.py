@@ -35,9 +35,12 @@ class DBclient:
                 'rating': 0,                            # Рейтинг пользователя
                 'last_companion_id': None,              # Уникальный id последнего собеседника
                 'block_companion': [],                  # Список уникальных id юзеров в блоке 
-                'data_rating_companion': [],             # Скалдывается информация о сообщениях рейтинга и к какому юзеру сообщение относится -- типа {'user_id': 0000000000, 'message_id': 0000000}
-                'last_action_date': None,
-                'start_date': str(datetime.now().isoformat(' ', 'seconds'))
+                'data_rating_companion': [],            # Скалдывается информация о сообщениях рейтинга и к какому юзеру сообщение относится -- типа {'user_id': 0000000000, 'message_id': 0000000}
+                'verified_psychologist': False,         # False - не верифицированный, 'under_consideration' - на рассмотрении, True - верифицированный
+                'statistic': {
+                                'last_action_date': None,
+                                'start_date': str(datetime.now().isoformat(' ', 'seconds')),
+                             }
             }
             self.db.users.insert_one(user)
         return user
@@ -104,9 +107,10 @@ class DBclient:
         # return self.search_companion(user_id)
     
     def update_last_action_date(self, user_id):
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'last_action_date': str(datetime.now().isoformat(' ', 'seconds'))}})
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': str(datetime.now().isoformat(' ', 'seconds'))}})
 
-    
+    def update_verifed_psychologist(self, user_id, value):
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
 
 
     
