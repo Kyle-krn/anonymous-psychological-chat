@@ -4,6 +4,7 @@ __pycache__/
 test_img/
 flask_module/flask_settings.py
 img/
+static/
 webhook_cert.pem
 webhook_pkey.pem
 settings.py

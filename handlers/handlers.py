@@ -19,11 +19,8 @@ def system_message_filter(message):
 @bot.message_handler(commands=['start', 'help'])
 def command_start(message):
     user = db.get_or_create_user(message.chat)
-    db.update_last_action_date(message.chat.id)
-    if user['companion_id']:
-        bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
-        rating_message(message)
-        db.cancel_search(message.chat.id)
+    # db.update_last_action_date(message.chat.id)
+    if system_message_filter(message):  return
     return bot.send_message(chat_id=message.chat.id, text='Это приветственное сообщение бота', reply_markup=main_keyboard())
 
 
@@ -33,15 +30,16 @@ def companion(message):
     db.update_last_action_date(message.chat.id)
     if user['helper'] is None:
         return bot.send_message(chat_id=message.chat.id, text='Необходимо выбрать роль, для этого перейдите в настройки', reply_markup=main_keyboard())
-
     answer = db.search_companion(message.chat.id)
 
     user = db.get_or_create_user(message.chat)  # второй раз получаем юзера потому что в search_companion() юзер обновлен
     if answer:
+        db.push_date_in_start_dialog_time(user['companion_id'])     # Записываем дату и время начала диалога
         bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Рейтинг вашего собеседника: {user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
         companion_user = db.get_user_on_id(user['companion_id'])
+        db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
         return bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Рейтинг вашего собеседника: {companion_user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
-    return bot.send_message(chat_id=message.chat.id, text='Идет поиск', reply_markup=control_companion(next=False))
+    return bot.send_message(chat_id=message.chat.id, text='Ожидание собедсеника ⌛', reply_markup=control_companion(next=False))
 
 
 @bot.message_handler(regexp='^(Следующий собеседник)$')
@@ -63,11 +61,16 @@ def next_companion_inline(call):
         return companion(call.message)
     if call.data.split('~')[1] == 'yes':
         user = db.get_user_on_id(call.message.chat.id)
+        db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+        db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
         rating_message(call.message)
         db.next_companion(call.message.chat.id)
         companion(call.message)
 
+@bot.message_handler(regexp='^(Тест)$')
+def test_handler(message):
+    db.update_count_message_dialog_time(message.chat.id)
 
 
 
@@ -76,7 +79,9 @@ def stop_search_handler(message):
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
     if user['companion_id']:
+        db.push_date_in_end_dialog_time(message.chat.id) # Записываем дату и время конца диалога
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+        db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
         rating_message(message)
         db.cancel_search(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
@@ -117,9 +122,11 @@ def rating_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
     try:
+        user = get_user_on_id(call.message.chat.id)
         bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-        filepath = f'img/verefication_doc/{call.message.chat.id}/'
+        if user['verified_psychologist'] != False:    return
+        filepath = f'static/verefication_doc/{call.message.chat.id}/'
         if os.path.exists(filepath):
             shutil.rmtree(filepath)
     except Exception as e:
@@ -138,7 +145,7 @@ def send_photo_pasport(message):
         if message.photo:
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'img/verefication_doc/{message.chat.id}/'
+            filepath = f'static/verefication_doc/{message.chat.id}/'
             if not os.path.exists(filepath):
                 os.mkdir(filepath)
             src = filepath + f'passport_photo' + '.jpg'
@@ -159,7 +166,7 @@ def send_self_photo_with_pasport(message):
         if message.photo:
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'img/verefication_doc/{message.chat.id}/'
+            filepath = f'static/verefication_doc/{message.chat.id}/'
             if not os.path.exists(filepath):
                 os.mkdir(filepath)
             src = filepath + f'selfie_passport_photo' + '.jpg'
@@ -180,7 +187,7 @@ def send_photo_diploma(message):
         if message.photo:
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'img/verefication_doc/{message.chat.id}/'
+            filepath = f'static/verefication_doc/{message.chat.id}/'
             if not os.path.exists(filepath):
                 os.mkdir(filepath)
             src = filepath + f'diploma_photo' + '.jpg'

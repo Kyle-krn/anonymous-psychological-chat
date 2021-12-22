@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class=container>
+    <div class="table-responsive">
+    <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Username</th>
+            <th scope="col">First_name</th>
+            <th scope="col">Second name</th>
+            <th scope="col">Category</th>
+            <th scope="col">Rating</th>
+            <th scope="col">Verefication</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+          <tr>
+            <th scope="row">{{ loop.index }}</th>
+    
+            {% if u['username'] == None %}
+            <td><p class="text-danger">{{u['username']}}</p></td>
+            {% else %}
+            <td>{{u['username']}}</td>
+            {% endif %}        
+            
+            {% if u['first_name'] == None %}
+            <td><p class="text-danger">{{u['first_name']}}</p></td>
+            {% else %}
+            <td>{{u['first_name']}}</td>
+            {% endif %}
+    
+            {% if u['last_name'] == None %}
+            <td><p class="text-danger">{{u['last_name']}}</p></td>
+            {% else %}
+            <td>{{u['last_name']}}</td>
+            {% endif %}
+
+            {% if u['helper'] == True %}
+            <td>Психолог</td>
+            {% elif u['helper'] == False %}
+            <td>Нужна помощь</td>
+            {% elif u['helper'] == None %}
+            <td>Не выбрано</td>
+            {% endif %}
+
+            <td>{{u['rating']}}</td>
+            
+            {% if u['verified_psychologist'] == True %}
+            <td>Верифицирован</td>
+            {% elif u['verified_psychologist'] == False %}
+            <td>Не верифицирован</td>
+            {% elif u['verified_psychologist'] == 'under_consideration' %}
+            <td> <p class="text-success">На рассмотрении</p></td>
+            {% endif %}
+            <td><a class="btn btn-primary btn-sm" href="{{ url_for('user_view', user_id=u['user_id']) }}" role="button">Подробнее</a></td>
+          </tr>
+        {% endfor %}
+    
+        </tbody>
+      </table>
+    </div>
+    </div>
+    {% endblock %}
+    

@@ -8,8 +8,8 @@ def chat(message):
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
 
-    if not user['companion_id']:
-        return
+    if not user['companion_id']:    return
+    db.update_count_message_dialog_time(message.chat.id)
     if message.text:
         # return bot.send_message(chat_id=user['companion_id'], text=message.text)
         return bot.send_message(chat_id=user['companion_id'], text="<u><b>Собеседник пишет:</b></u>\n\n"+message.text, parse_mode='HTML')

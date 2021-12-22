@@ -1,6 +1,11 @@
 from pymongo import MongoClient
 from settings import MONGO_LINK
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
 
 class DBclient:
     def __init__(self):
@@ -40,7 +45,8 @@ class DBclient:
                 'statistic': {
                                 'last_action_date': None,
                                 'start_date': str(datetime.now().isoformat(' ', 'seconds')),
-                             }
+                             },
+                'dialog_time': []
             }
             self.db.users.insert_one(user)
         return user
@@ -111,10 +117,42 @@ class DBclient:
 
     def update_verifed_psychologist(self, user_id, value):
         self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
-
-
     
+    # Не работает
+    def push_date_in_start_dialog_time(self, user_id):
+        try:
+            time_dict = {
+                'start': str(datetime.now().isoformat(' ', 'seconds')),
+                'end': None,
+                'delta': None,
+                'count_message': 0
+            }
+            self.db.users.update_one({'user_id': user_id}, {"$push": {'dialog_time': time_dict }})
+        except Exception as e:
+            print(e)
+
+    def update_count_message_dialog_time(self, user_id):
+        user = self.db.users.find_one({'user_id': user_id}, {'dialog_time':{'$slice': -1}})
+        clear_last_date = user['dialog_time'][0]
+        print(clear_last_date)
+        self.db.users.update_one({'user_id': user_id, 'dialog_time.start': clear_last_date['start']}, {'$inc': {'dialog_time.$.count_message': 1}})
+
+
+    def push_date_in_end_dialog_time(self, user_id):
+        # "%Y-%m-%d %H:%M:%S"
+        try:
+            user = self.db.users.find_one({'user_id': user_id}, {'dialog_time':{'$slice': -1}})
+            clear_last_date = user['dialog_time'][0]
+            last_date = clear_last_date.copy()
+            print(last_date)
+            last_date['end'] = str(datetime.now().isoformat(' ', 'seconds'))
+            delta = datetime.now() - datetime.strptime(last_date['start'], "%Y-%m-%d %H:%M:%S")
+            last_date['delta'] = int(delta.total_seconds())
+            self.db.users.update_one({'user_id': user_id}, {'$pull': {'dialog_time': clear_last_date}})
+            self.db.users.update_one({'user_id': user_id}, {'$push': {'dialog_time': last_date}})
+        except Exception as e:
+            print(e)
+
 
 db = DBclient()
-
 

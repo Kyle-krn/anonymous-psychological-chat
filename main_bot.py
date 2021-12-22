@@ -1,19 +1,13 @@
-# import telebot
-# from handlers import bot
-# from settings import TELEGRAM_TOKEN
-
-# if __name__ == '__main__':
-#     bot.remove_webhook()
-#     bot.polling(none_stop=True)
-
 import telebot
-import flask
+from flask import render_template, request, abort, redirect, url_for
 import logging
 import time
-from settings import TELEGRAM_TOKEN, HOST
+from settings import TELEGRAM_TOKEN, HOST, app
 from handlers import bot
-from flask_module import app
-
+from database import sql_db, Users, db
+import os
+import shutil
+import statistics
 
 
 if __name__ == '__main__':
@@ -38,25 +32,56 @@ if __name__ == '__main__':
     logger = telebot.logger
     telebot.logger.setLevel(logging.INFO)
 
-    # app = flask.Flask(__name__)
-
-
-    # Empty webserver index, return nothing, just http 200
-    # @app.route('/', methods=['GET', 'HEAD'])
-    # def index():
-    #     return 'Привет'
-
-
     # # Process webhook calls
+
+    def delta_seconds_in_normal_str(seconds):
+        total_seconds = seconds
+        minutes = 0
+
+
     @app.route(WEBHOOK_URL_PATH, methods=['POST'])
     def webhook():
-        if flask.request.headers.get('content-type') == 'application/json':
-            json_string = flask.request.get_data().decode('utf-8')
+        if request.headers.get('content-type') == 'application/json':
+            json_string = request.get_data().decode('utf-8')
             update = telebot.types.Update.de_json(json_string)
             bot.process_new_updates([update])
             return ''
         else:
-            flask.abort(403)
+            abort(403)
+
+    @app.route('/', methods=['GET', 'HEAD'])
+    def index():
+        # sql_db.create_all()
+        users = db.db.users.find()
+        return render_template('index.html', users=users)
+
+    @app.route("/<int:user_id>",  methods=['GET'])
+    def user_view(user_id):
+        user = db.get_user_on_id(user_id)
+        companion = None
+        list_count_message = [x['count_message'] for x in user['dialog_time']]
+        all_count_message = sum(list_count_message)
+        mean_count_message = statistics.mean((list_count_message or [0]))
+        count_dialog = len(user['dialog_time'])
+        time_in_dialog = sum([x['delta'] for x in user['dialog_time']])
+        delta_seconds_in_normal_str(time_in_dialog)
+        if user['companion_id']:
+            companion = db.db.users.find_one({'user_id': user['companion_id']})
+        return render_template('user.html', user=user, companion=companion)
+
+    @app.route("/<int:user_id>/verif",  methods=['POST'])
+    def user_verif(user_id):
+        if 'reject' in request.form:
+            filepath = f'static/verefication_doc/{user_id}/'
+            db.update_verifed_psychologist(user_id, False)
+            if os.path.exists(filepath):
+                coment = request.form['reject_coment']
+                text = '<u><b>Сообщение от администрации об отклонении верификации:</b></u>\n\n' + (coment or 'Ваши документы отклоненны по неуказаной причине')
+                message = bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
+                shutil.rmtree(filepath)
+        if 'confirm' in request.form:
+            db.update_verifed_psychologist(user_id, True)
+        return redirect(url_for('user_view', user_id=user_id))
 
 
     # Handle '/start' and '/help'

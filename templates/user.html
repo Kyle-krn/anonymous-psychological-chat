@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block body %}
+<link rel="stylesheet" type="text/css" href="static/css/img.css">
+<div class=container>
+    <div class="table-responsive">
+    <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Пользователь:</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>id пользователя:</b></td>
+                <td>{{user['user_id']}}</td>
+            </tr>
+            <tr>
+                <td><b>Username:</b></td>
+                {% if user['username'] %}
+                <td>{{user['username']}}</td>
+                {% else %}
+                <td><p class="text-danger">Пользователь скрыл username</p></td>
+                {% endif %}
+            </tr>
+
+            <tr>
+                <td><b>Имя:</b></td>
+                <td>{{user['first_name']}}</td>
+            </tr>
+            <tr>
+                <td><b>Фамилия:</b></td>
+                <td>{{user['last_name']}}</td>
+            </tr>
+            <tr>
+                <td><b>Категория:</b></td>
+                {% if user['helper'] == True %}
+                <td>Психолог</td>
+                {% elif user['helper'] == False %}
+                <td>Нужна помощь</td>
+                {% elif user['helper'] == None %}
+                <td>Не выбрано</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <td><b>Рейтинг:</b></td>
+                <td>{{user['rating']}}</td>
+            </tr>
+            <tr>
+                <td><b>Верификация:</b></td>
+                {% if user['verified_psychologist'] == True %}
+                <td>Верифицирован</td>
+                {% elif user['verified_psychologist'] == False %}
+                <td>Не верифицирован</td>
+                {% elif user['verified_psychologist'] == 'under_consideration' %}
+                <td>На рассмотрении</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <td><b>Собеседник:</b></td>
+                {% if companion %}
+                <td><a href="{{ url_for('user_view', user_id=companion['user_id']) }}">
+                {% if companion['username'] %}
+                    {{companion['username']}}
+                {% else %}
+                    {{companion['user_id']}}
+                {% endif %}
+                </a></td>
+                {% else %}
+                <td>Нет</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <td><b>Первый запуск бота:</b></td>
+                <td>{{user['statistic']['start_date']}}</td>
+            </tr>
+            <tr>
+                <td><b>Последняя активность:</b></td>
+                <td>{{user['statistic']['last_action_date']}}</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="text-center">
+    {% if user['verified_psychologist'] == 'under_consideration' or  user['verified_psychologist'] == True %}
+            {% if user['verified_psychologist'] == 'under_consideration' %}
+                <h3>Заявка на рассмотрении:</h3>
+            {% else %}
+                <h4 class='text-success'>Верифицированный аккаунт</h4>
+            {% endif %}
+        <img src="static/verefication_doc/{{user['user_id']}}/passport_photo.jpg" alt="Паспорт" width="500" tabindex="0"/>
+        <img src="static/verefication_doc/{{user['user_id']}}/selfie_passport_photo.jpg" alt="Селфи с паспорт" width="500" tabindex="0"/>
+        <img src="static/verefication_doc/{{user['user_id']}}/diploma_photo.jpg" alt="Диплом" width="500" tabindex="0"/>
+        <form action="{{user['user_id']}}/verif" method='post'>
+            <br>
+                {% if user['verified_psychologist'] == 'under_consideration' %}
+                <button type="submit" name="confirm" class="btn btn-success btn-lg btn-block">Подтвердить</button>
+                {% endif %}
+            <span id='span_reject'><button id='reject_id' type="button" name="reject" class="btn btn-danger btn-lg btn-block">Отклонить</button></span>
+            
+        </form>
+        <br>
+        </form>
+        <br>
+    {% endif %}
+
+</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<script src="static/js/modal.js"></script>
+<script>
+    $(document).ready(function() {
+    $("#reject_id").click(function(){
+        var input = `<br><br>
+                    <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="inputGroup-sizing-default">Коментарий:</span>
+                    </div>
+                    <input type="text" name="reject_coment" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
+                    </div>
+                    `
+        var button = `<button id='reject_id' type="submit" name="reject" class="btn btn-danger btn-lg btn-block">Отклонить</button>`
+        $(this).remove()
+        $('#span_reject').append(button);
+        $('#span_reject').after(input);
+        
+    }); 
+});
+</script>
+{% endblock %}
