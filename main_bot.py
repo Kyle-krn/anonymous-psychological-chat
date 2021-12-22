@@ -2,12 +2,14 @@ import telebot
 from flask import render_template, request, abort, redirect, url_for
 import logging
 import time
+import datetime
 from settings import TELEGRAM_TOKEN, HOST, app
 from handlers import bot
 from database import sql_db, Users, db
 import os
 import shutil
 import statistics
+from pytz import timezone
 
 
 if __name__ == '__main__':
@@ -34,10 +36,15 @@ if __name__ == '__main__':
 
     # # Process webhook calls
 
-    def delta_seconds_in_normal_str(seconds):
-        total_seconds = seconds
-        minutes = 0
+    def russian_str_date(str_time):
+        if 'days' in str_time:
+            str_time = str_time.replace('days', 'дней')
+        elif 'day' in str_time:
+            str_time = str_time.replace('day', 'день')
+        return str_time
 
+    def delete_microseconds(delta):
+        return delta - datetime.timedelta(microseconds=delta.microseconds)
 
     @app.route(WEBHOOK_URL_PATH, methods=['POST'])
     def webhook():
@@ -60,14 +67,27 @@ if __name__ == '__main__':
         user = db.get_user_on_id(user_id)
         companion = None
         list_count_message = [x['count_message'] for x in user['dialog_time']]
-        all_count_message = sum(list_count_message)
-        mean_count_message = statistics.mean((list_count_message or [0]))
-        count_dialog = len(user['dialog_time'])
-        time_in_dialog = sum([x['delta'] for x in user['dialog_time']])
-        delta_seconds_in_normal_str(time_in_dialog)
+        second_in_dialog = sum([x['delta'] for x in user['dialog_time']])
+        time_in_dialog = str(datetime.timedelta(seconds=second_in_dialog))
+        all_time_in_bot = str(delete_microseconds(datetime.datetime.now() - datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S")))
+        mean_time_in_dialog = statistics.mean(([x['delta'] for x in user['dialog_time']] or [0]))
+        mean_time_in_dialog = str(datetime.timedelta(seconds=mean_time_in_dialog))
+        print(mean_time_in_dialog)
+        statistic = {
+            'all_count_message': sum(list_count_message),
+            'mean_count_message': statistics.mean((list_count_message or [0])),
+            'count_dialog': len(user['dialog_time']),
+            'time_in_dialog': russian_str_date(time_in_dialog),
+            'all_time_in_bot': russian_str_date(all_time_in_bot)
+            }
+
+        user['statistic']['start_date'] = (datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S") \
+                                           + datetime.timedelta(hours=3)).isoformat(' ', 'seconds')
+        user['statistic']['last_action_date'] = (datetime.datetime.strptime(user['statistic']['last_action_date'], "%Y-%m-%d %H:%M:%S") \
+                                                 + datetime.timedelta(hours=3)).isoformat(' ', 'seconds')
         if user['companion_id']:
             companion = db.db.users.find_one({'user_id': user['companion_id']})
-        return render_template('user.html', user=user, companion=companion)
+        return render_template('user.html', user=user, companion=companion, statistic=statistic)
 
     @app.route("/<int:user_id>/verif",  methods=['POST'])
     def user_verif(user_id):
