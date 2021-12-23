@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container">
+<br>
+    <form action="/bulk_mailing_post" method='post' enctype="multipart/form-data">
+    <div class="input-group mb-3">
+        <select class='form-control' name="category" id="category_id">
+            <option value="">Выберите категорию:</option>
+            <option value="helper">Психологи</option>
+            <option value="non_helper">Нужна помощь</option>
+        </select>
+
+        <select class='form-control' name="verification" id="verefication_id">
+          <option value=''>Верификация:</option>
+          <!-- <option value="verif">Только верифицированные</option>
+          <option value="non_verif">Сначала не верифицированные</option>
+          <option value="under_consideration">Сначала на рассмотрении</option> -->
+        </select>
+      </div>
+      <div class="text-end text-muted" id='textarea_count'>0/1000</div>
+      <textarea name="text" id="text_id" cols="30" rows="5" class='form-control' placeholder='Введите сообщение для рассылки' required></textarea>
+      <br>
+
+      
+      <div class="text-center">
+        <div id='file_button_div_id'>
+        <button class="btn btn-success add-file" id="add_file_id" data-toggle="modal" data-target="#exampleModal" type="button">
+            <i class="far fa-file-image"></i>
+            </button>
+            </div>
+            <br><br>
+            <button class="btn btn-outline-success btn-lg" id="send_message_id" type="submit" id="button-addon2">Отправить сообщение</button>
+      
+    </div>
+</form>
+</div>
+
+<script>
+    var option_list = {'verif': 'Только верифицированные', 'non_verif': 'Только не верифицированные', 'under_consideration': 'Только на рассмотрении'}
+      $( "#category_id" ).change(function() {
+        if ($(this).val() == 'helper') {
+          $.each(option_list, function(key, value) {
+          $('#verefication_id').append('<option value="' + key + '">' + value + '</option>');
+        });
+      } else {
+          $.each(option_list, function(key, value) {
+          $('#verefication_id option[value=' + key + ']').remove();
+        });
+      }
+      });
+
+      var button_file = `<input type="file" name="img" class="form-control" id="file_id" required><br>`;
+      var button_remove_file = `<button class="btn btn-danger remove-file" id="remove_file_id" type="button">
+                                    <i class="far fa-file-image"></i>
+                                    </button>`;
+      var button_add_file = `<button class="btn btn-success add-file" id="add_file_id" type="button">
+                                    <i class="far fa-file-image"></i>
+                                    </button>`;
+      
+                                    $('#file_button_div_id').on('click', '#add_file_id', function(){
+        $('#text_id').prop('required',false);
+        $('#file_button_div_id').empty();
+        $('#file_button_div_id').append(button_file);
+        $('#file_button_div_id').append(button_remove_file);
+        
+        // $(this).after(button_remove_file);
+        // $(this).html(button_file);
+        // $(this).remove();
+    });
+
+    $('#file_button_div_id').on('click', '#remove_file_id', function(){
+        $('#text_id').prop('required',true);
+        $('#file_button_div_id').empty();
+        $('#file_button_div_id').append(button_add_file);
+    });
+
+    $('#text_id').bind('input', function () {
+        var len = $("#text_id").val().length;
+        $('#textarea_count').text(len + '/1000')
+        if (len > 1000) {
+            $('#text_id').removeClass('alert-success');
+            $('#text_id').addClass('alert-danger');
+            $('#send_message_id').prop('disabled',true);
+        } else {
+            $('#text_id').removeClass('alert-danger');
+            $('#text_id').addClass('alert-success');
+            $('#send_message_id').prop('disabled',false);
+        }
+
+    });
+</script>
+{% endblock %}

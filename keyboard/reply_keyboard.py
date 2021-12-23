@@ -9,6 +9,11 @@ def main_keyboard():
     keyboard.add(button2)
     return keyboard
 
+def block_keyboard():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    button2 = types.KeyboardButton('Служба поддержки')
+    keyboard.add(button2)
+    return keyboard
 
 def settings_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)

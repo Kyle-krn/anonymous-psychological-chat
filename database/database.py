@@ -42,9 +42,12 @@ class DBclient:
                 'block_companion': [],                  # Список уникальных id юзеров в блоке 
                 'data_rating_companion': [],            # Скалдывается информация о сообщениях рейтинга и к какому юзеру сообщение относится -- типа {'user_id': 0000000000, 'message_id': 0000000}
                 'verified_psychologist': False,         # False - не верифицированный, 'under_consideration' - на рассмотрении, True - верифицированный
+                'blocked': False,                       # True - заблокированный пользователь
                 'statistic': {
-                                'last_action_date': None,
-                                'start_date': str(datetime.now().isoformat(' ', 'seconds')),
+                                'last_action_date': str(datetime.now().isoformat(' ', 'seconds')),                                       # Последняя активность
+                                'start_date': str(datetime.now().isoformat(' ', 'seconds')),    # Дата начала использования бота
+                                'output_finish': 0,                         # Сколько раз с пользователем заверешили диалог
+                                'input_finish': 0,                          # Сколько раз пользователь завершал диалог
                              },
                 'dialog_time': []
             }
@@ -115,10 +118,12 @@ class DBclient:
     def update_last_action_date(self, user_id):
         self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': str(datetime.now().isoformat(' ', 'seconds'))}})
 
+    def update_statistic_inc(self, user_id, value):
+        self.db.users.update_one({'user_id': user_id}, {'$inc': {f'statistic.{value}' : 1}})
+
     def update_verifed_psychologist(self, user_id, value):
         self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
     
-    # Не работает
     def push_date_in_start_dialog_time(self, user_id):
         try:
             time_dict = {
@@ -153,6 +158,9 @@ class DBclient:
         except Exception as e:
             print(e)
 
+    def blocked_user(self, user_id, value):
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'blocked': value}})
 
+        
 db = DBclient()
 

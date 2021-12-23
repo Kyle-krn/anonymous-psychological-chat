@@ -7,7 +7,6 @@ from pathlib import Path
 def chat(message):
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
-
     if not user['companion_id']:    return
     db.update_count_message_dialog_time(message.chat.id)
     if message.text:

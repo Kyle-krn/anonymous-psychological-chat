@@ -16,16 +16,23 @@ def system_message_filter(message):
     if user['companion_id']:
         return chat(message)
 
+def blocked_filter(message):
+    user = db.get_or_create_user(message.chat)
+    if user['blocked'] is True:
+        return bot.send_message(chat_id=message.chat.id, text='<u><b>Сообщение от администрации:</b></u>\n\nВы заблокированны', parse_mode='HTML')
+
 @bot.message_handler(commands=['start', 'help'])
 def command_start(message):
     user = db.get_or_create_user(message.chat)
     # db.update_last_action_date(message.chat.id)
     if system_message_filter(message):  return
+    if blocked_filter(message):    return
     return bot.send_message(chat_id=message.chat.id, text='Это приветственное сообщение бота', reply_markup=main_keyboard())
 
 
 @bot.message_handler(regexp="^(Найти собеседника)$")
 def companion(message):
+    if blocked_filter(message):    return
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
     if user['helper'] is None:
@@ -44,6 +51,7 @@ def companion(message):
 
 @bot.message_handler(regexp='^(Следующий собеседник)$')
 def next_companion(message):
+    if blocked_filter(message):    return
     bot.delete_message(message.chat.id, message.message_id)
     user = db.get_user_on_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
@@ -54,6 +62,7 @@ def next_companion(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'next_companion')
 def next_companion_inline(call):
+    if blocked_filter(call.message):    return
     bot.delete_message(call.message.chat.id, call.message.message_id)
     user = db.get_user_on_id(call.message.chat.id)
     db.update_last_action_date(call.message.chat.id)
@@ -62,26 +71,31 @@ def next_companion_inline(call):
     if call.data.split('~')[1] == 'yes':
         user = db.get_user_on_id(call.message.chat.id)
         db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
+        db.update_statistic_inc(call.message.chat.id, 'output_finish')
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
+        db.update_statistic_inc(user['companion_id'], 'input_finish')
         rating_message(call.message)
         db.next_companion(call.message.chat.id)
         companion(call.message)
 
-@bot.message_handler(regexp='^(Тест)$')
-def test_handler(message):
-    db.update_count_message_dialog_time(message.chat.id)
+# @bot.message_handler(regexp='^(Тест)$')
+# def test_handler(message):
+#     db.update_statistic_finish(message.chat.id, 'output_finish')
 
 
 
 @bot.message_handler(regexp='^(Стоп)$')
 def stop_search_handler(message):
+    if blocked_filter(message):    return
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
     if user['companion_id']:
         db.push_date_in_end_dialog_time(message.chat.id) # Записываем дату и время конца диалога
+        db.update_statistic_inc(message.chat.id, 'output_finish')
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
+        db.update_statistic_inc(user['companion_id'], 'input_finish')
         rating_message(message)
         db.cancel_search(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
@@ -89,6 +103,7 @@ def stop_search_handler(message):
 
 
 def rating_message(message):
+    if blocked_filter(message):    return
     user = db.get_user_on_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
     rating_message_companion = bot.send_message(chat_id=user['companion_id'], text='Как вы оцените вашего собеседника?', reply_markup=rating_keyboard())
@@ -108,6 +123,7 @@ def rating_message(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'rating')
 def rating_handler(call):
+    if blocked_filter(call.message):    return
     data_rating = db.get_data_rating_companion(call.message.chat.id, call.message.message_id)
     if call.data.split('~')[1] == "+":
         count = 1
@@ -134,70 +150,52 @@ def cancel_register_next_step_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'verification')
 def verification_handler(call):
+    if blocked_filter(call.message):    return
     bot.delete_message(call.message.chat.id, call.message.message_id)
     if call.data.split('~')[1]  == 'yes':
         message = bot.send_message(call.message.chat.id, f"Пришлите фото паспорта.", reply_markup=cancel_next_handlers()) 
         bot.register_next_step_handler(message, send_photo_pasport)
 
 
-def send_photo_pasport(message):
-    try:
-        if message.photo:
-            file_info = bot.get_file(message.photo[-1].file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'static/verefication_doc/{message.chat.id}/'
-            if not os.path.exists(filepath):
-                os.mkdir(filepath)
-            src = filepath + f'passport_photo' + '.jpg'
-            with open(src, 'wb') as new_file:
-                new_file.write(downloaded_file)
+def save_photo(message, file_name):
+    file_info = bot.get_file(message.photo[-1].file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    filepath = f'static/verefication_doc/{message.chat.id}/'
+    if not os.path.exists(filepath):
+        os.mkdir(filepath)
+    src = filepath + file_name + '.jpg'
+    with open(src, 'wb') as new_file:
+        new_file.write(downloaded_file)
 
-            message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
-            bot.register_next_step_handler(message, send_self_photo_with_pasport)
-        else:
-            message = bot.send_message(message.chat.id, f"Пришлите фото паспорта.", reply_markup=cancel_next_handlers()) 
-            bot.register_next_step_handler(message, send_photo_pasport)
-    except Exception as e:
-        print(e)
+
+def send_photo_pasport(message):
+    if message.photo:
+        save_photo(message, 'passport_photo')
+        message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
+        bot.register_next_step_handler(message, send_self_photo_with_pasport)
+    else:
+        message = bot.send_message(message.chat.id, f"Пришлите фото паспорта.", reply_markup=cancel_next_handlers()) 
+        bot.register_next_step_handler(message, send_photo_pasport)
+
 
 
 def send_self_photo_with_pasport(message):
-    try:
-        if message.photo:
-            file_info = bot.get_file(message.photo[-1].file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'static/verefication_doc/{message.chat.id}/'
-            if not os.path.exists(filepath):
-                os.mkdir(filepath)
-            src = filepath + f'selfie_passport_photo' + '.jpg'
-            with open(src, 'wb') as new_file:
-                new_file.write(downloaded_file)
+    if message.photo:
+        save_photo(message, 'selfie_passport_photo')
+        message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers()) 
+        bot.register_next_step_handler(message, send_photo_diploma)
+    else:
+        message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
+        bot.register_next_step_handler(message, send_self_photo_with_pasport)
 
-            message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers()) 
-            bot.register_next_step_handler(message, send_photo_diploma)
-        else:
-            message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
-            bot.register_next_step_handler(message, send_self_photo_with_pasport)
-    except Exception as e:
-        print(e)
 
 
 def send_photo_diploma(message):
-    try:
-        if message.photo:
-            file_info = bot.get_file(message.photo[-1].file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            filepath = f'static/verefication_doc/{message.chat.id}/'
-            if not os.path.exists(filepath):
-                os.mkdir(filepath)
-            src = filepath + f'diploma_photo' + '.jpg'
-            with open(src, 'wb') as new_file:
-                new_file.write(downloaded_file)
-            bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
-            bot.send_message(chat_id=message.chat.id, text='Ждите решения администрации. Обычно на это уходит не больше 1 суток.')            
-            db.update_verifed_psychologist(user_id=message.chat.id, value='under_consideration')
-        else:
-            message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers()) 
-            bot.register_next_step_handler(message, send_photo_diploma)
-    except Exception as e:
-        print(e)
+    if message.photo:
+        save_photo(message, 'diploma_photo')
+        bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
+        bot.send_message(chat_id=message.chat.id, text='Ждите решения администрации. Обычно на это уходит не больше 1 суток.')            
+        db.update_verifed_psychologist(user_id=message.chat.id, value='under_consideration')
+    else:
+        message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers()) 
+        bot.register_next_step_handler(message, send_photo_diploma)

@@ -2,6 +2,7 @@
 {% block body %}
 <link rel="stylesheet" type="text/css" href="static/css/img.css">
 <div class=container>
+    
     <div class="table-responsive">
     <table class="table">
         <thead>
@@ -71,6 +72,10 @@
                 {% endif %}
             </tr>
             <tr>
+                <td>-----------------------------------------</td>
+                <td>-----------------------------------------</td>
+            </tr>
+            <tr>
                 <td><b>Первый запуск бота:</b></td>
                 <td>{{user['statistic']['start_date']}}</td>
             </tr>
@@ -86,20 +91,62 @@
                 <td><b>Всего времени в диалогах с собеседниками:</b></td>
                 <td>{{statistic['time_in_dialog']}}</td>
             </tr>
-            
-            
-
+                <td><b>Среднее время в диалогах:</b></td>
+                <td>{{statistic['mean_time_in_dialog']}}</td>
             <tr>
                 <td><b>Количество диалогов:</b></td>
-                <td>{{statistic['all_count_message']}} диалога</td>
+                <td>{{statistic['count_dialog']}} диалога</td>
+            </tr>
+            <tr>
+                <td><b>Сколько диалогов завершил пользователь:</b></td>
+                <td>{{user['statistic']['output_finish']}} раз</td>
+            </tr>
+            <tr>
+                <td><b>Сколько диалогов завершили собесденики:</b></td>
+                <td>{{user['statistic']['input_finish']}} раз</td>
             </tr>
             <tr>
                 <td><b>Всего сообщений собеседнику написано:</b></td>
+                <td>{{statistic['total_count_message']}} сообщений</td>
+            </tr>
+            <tr>
+                <td><b>Среднее количество сообщений в диалоге:</b></td>
+                <td>{{statistic['mean_count_message']}} сообщений</td>
+            </tr>
+            <tr>
+                <td><b>Блокировка:</b></td>
+                <td>
+                {% if user['blocked'] %}
+                Заблокирован<i class="fas fa-times-circle"></i>
+                {% else %}
+                Не заблокирован <i class="far fa-check-circle"></i>
+                {% endif %}
+            </td>
             </tr>
         </tbody>
       </table>
     </div>
-    
+
+    <br>
+    <form action="{{user['user_id']}}/send_message" method='post'>
+    <div class="input-group mb-3">
+        <input type="text" name='text' class="form-control" placeholder="Сообщение пользователю" aria-label="Large" aria-describedby="basic-addon2" required>
+        <div class="input-group-append">
+                      
+            {% if user['blocked'] == True %}
+            <button class="btn btn-success" data-toggle="modal" data-target="#exampleModal" type="button">
+            <i class="far fa-check-circle"></i>
+            {% else %}
+            <button class="btn btn-danger" data-toggle="modal" data-target="#exampleModal" type="button">
+            <i class="fas fa-times-circle"></i>
+            {% endif %}
+            </button>
+          <button class="btn btn-outline-secondary" type="submit">Отправить</button>
+        </div>
+    </div>
+    </form>
+    <br>
+        
     <div class="text-center">
     {% if user['verified_psychologist'] == 'under_consideration' or  user['verified_psychologist'] == True %}
             {% if user['verified_psychologist'] == 'under_consideration' %}
@@ -123,10 +170,41 @@
         <br>
     {% endif %}
 
+
+  
+  <!-- Modal -->
+
+  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        </div>
+        <div class="modal-body">
+            {% if user['blocked'] == True %}
+            <form action="{{user['user_id']}}/unblocked" method="post">
+            {% else %}
+          <form action="{{user['user_id']}}/blocked" method="post">
+            {% endif %}  
+            <input type="text" name="text" class="form-control" placeholder="Сообщение пользователю">
+        </div>
+        <div class="modal-footer">
+          {% if user['blocked'] == True %}
+          <button type="submit" class="btn btn-success">Разблокировать</button>
+          {% else %}
+          <button type="submit" class="btn btn-danger">Заблокировать</button>
+          {% endif %}
+
+        </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+
 </div>
 </div>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
-<script src="static/js/modal.js"></script>
 <script>
     $(document).ready(function() {
     $("#reject_id").click(function(){
@@ -142,8 +220,18 @@
         $(this).remove()
         $('#span_reject').append(button);
         $('#span_reject').after(input);
-        
     }); 
 });
+
 </script>
+<script src="static/js/modal.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+    integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
 {% endblock %}
