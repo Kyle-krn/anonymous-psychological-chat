@@ -95,6 +95,8 @@ if __name__ == '__main__':
     @app.route("/<int:user_id>",  methods=['GET'])
     def user_view(user_id):
         user = db.get_user_on_id(user_id)
+        if user is None:
+            abort(404)
         list_count_message = [x['count_message'] for x in user['dialog_time']]
         second_in_dialog = sum((([x['delta'] for x in user['dialog_time'] if x['delta'] is not None])))
         mean_time_in_dialog = statistics.mean(([x['delta'] for x in user['dialog_time'] if x['delta'] is not None] or [0]))
@@ -184,7 +186,6 @@ if __name__ == '__main__':
     @app.route("/bulk_mailing_post",  methods=['POST'])
     def bulk_mailing():
         params = {k:v for k,v in request.form.items() if v != ''}
-        print(params)
         mongo_filter = {}
         if 'category' in params:
             if params['category'] == 'helper':
