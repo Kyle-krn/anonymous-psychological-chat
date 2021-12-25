@@ -90,8 +90,6 @@ if __name__ == '__main__':
             return redirect(url_for('login'))
         params = {k:v for k,v in request.args.items() if v != ''}
         search_filter = {}
-        print(Users.query.all())
-
         if 'username' in params:
             nick = params['username']
             search_filter['username'] = {'$regex': nick, '$options' : 'i' }
@@ -123,8 +121,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>",  methods=['GET'])
     def user_view(user_id):
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         user = db.get_user_on_id(user_id)
         if user is None:
             abort(404)
@@ -133,7 +131,6 @@ if __name__ == '__main__':
         mean_time_in_dialog = statistics.mean(([x['delta'] for x in user['dialog_time'] if x['delta'] is not None] or [0]))
         time_in_dialog = str(datetime.timedelta(seconds=second_in_dialog))
         all_time_in_bot = str(delete_microseconds(datetime.datetime.now() - datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S")))
-        
         mean_time_in_dialog = str(datetime.timedelta(seconds=mean_time_in_dialog))
         # print(mean_time_in_dialog)
 
@@ -146,10 +143,8 @@ if __name__ == '__main__':
             'mean_time_in_dialog':russian_str_date(mean_time_in_dialog),
             }
 
-        user['statistic']['start_date'] = (datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S") \
-                                           + datetime.timedelta(hours=3)).isoformat(' ', 'seconds')
-        user['statistic']['last_action_date'] = (datetime.datetime.strptime(user['statistic']['last_action_date'], "%Y-%m-%d %H:%M:%S") \
-                                                 + datetime.timedelta(hours=3)).isoformat(' ', 'seconds')
+        user['statistic']['start_date'] = (datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S")).isoformat(' ', 'seconds')
+        user['statistic']['last_action_date'] = (datetime.datetime.strptime(user['statistic']['last_action_date'], "%Y-%m-%d %H:%M:%S")).isoformat(' ', 'seconds')
         companion = None
         if user['companion_id']:
             companion = db.db.users.find_one({'user_id': user['companion_id']})
@@ -157,8 +152,8 @@ if __name__ == '__main__':
 
     @app.route("/bulk",  methods=['GET'])
     def bulk_handler():
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         return render_template('bulk.html')
 
     @app.route("/<int:user_id>/verif",  methods=['POST'])
@@ -180,8 +175,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/send_message",  methods=['POST'])
     def send_user_message(user_id):
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         text = '<u><b>Сообщение от администрации:</b></u>\n\n' +  request.form['text']
         try:
             bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
@@ -192,8 +187,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/blocked",  methods=['POST'])
     def blocked_user(user_id):
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         user = db.get_user_on_id(user_id)
         if user['companion_id']:
             db.push_date_in_end_dialog_time(user_id) # Записываем дату и время конца диалога
@@ -213,8 +208,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/unblocked",  methods=['POST'])
     def unblocked_user(user_id):
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         text = '<u><b>Сообщение от администрации о разблокировке:</b></u>\n\n' +  request.form['text']
         try:
             bot.send_message(chat_id=user_id, text=text, reply_markup=main_keyboard(), parse_mode='HTML')
@@ -226,8 +221,8 @@ if __name__ == '__main__':
 
     @app.route("/bulk_mailing_post",  methods=['POST'])
     def bulk_mailing():
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         params = {k:v for k,v in request.form.items() if v != ''}
         mongo_filter = {}
         if 'category' in params:
