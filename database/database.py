@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        self.db = self.client['test_chat']
+        self.db = self.client['anonymous_chat']
 
 
     def cancel_search(self, user_id):

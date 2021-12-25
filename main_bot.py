@@ -12,6 +12,8 @@ import shutil
 import statistics
 from pytz import timezone
 from werkzeug.utils import secure_filename
+from flask_login.utils import logout_user
+from flask_login import login_required, login_user, current_user
 
 
 if __name__ == '__main__':
@@ -58,10 +60,37 @@ if __name__ == '__main__':
         else:
             abort(403)
 
+    @app.route("/login", methods=['POST', 'GET'])
+    def login():
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
+        if request.method == "POST":
+            login = request.form['login']
+            pswd = request.form['password']
+            user = Users.query.filter_by(login=login).first()
+            if user is None:
+                flash('Попробуйте снова')
+            else:
+                if user.check_password(pswd):
+                    login_user(user)
+                    return redirect(url_for('index'))
+                else:
+                    flash('Попробуйте снова')
+        return render_template('login.html')
+
+    @app.route('/logout', methods=['POST', 'GET'])
+    @login_required
+    def logout():
+        logout_user()
+        return redirect(url_for('login'))
+
     @app.route('/', methods=['GET', 'HEAD'])
     def index():
+        if current_user.is_authenticated is False:
+            return redirect(url_for('login'))
         params = {k:v for k,v in request.args.items() if v != ''}
         search_filter = {}
+        print(Users.query.all())
 
         if 'username' in params:
             nick = params['username']
@@ -94,6 +123,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>",  methods=['GET'])
     def user_view(user_id):
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         user = db.get_user_on_id(user_id)
         if user is None:
             abort(404)
@@ -126,10 +157,14 @@ if __name__ == '__main__':
 
     @app.route("/bulk",  methods=['GET'])
     def bulk_handler():
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         return render_template('bulk.html')
 
     @app.route("/<int:user_id>/verif",  methods=['POST'])
     def user_verif(user_id):
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         if 'reject' in request.form:
             filepath = f'static/verefication_doc/{user_id}/'
             db.update_verifed_psychologist(user_id, False)
@@ -145,6 +180,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/send_message",  methods=['POST'])
     def send_user_message(user_id):
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         text = '<u><b>Сообщение от администрации:</b></u>\n\n' +  request.form['text']
         try:
             bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
@@ -155,6 +192,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/blocked",  methods=['POST'])
     def blocked_user(user_id):
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         user = db.get_user_on_id(user_id)
         if user['companion_id']:
             db.push_date_in_end_dialog_time(user_id) # Записываем дату и время конца диалога
@@ -174,6 +213,8 @@ if __name__ == '__main__':
 
     @app.route("/<int:user_id>/unblocked",  methods=['POST'])
     def unblocked_user(user_id):
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         text = '<u><b>Сообщение от администрации о разблокировке:</b></u>\n\n' +  request.form['text']
         try:
             bot.send_message(chat_id=user_id, text=text, reply_markup=main_keyboard(), parse_mode='HTML')
@@ -185,6 +226,8 @@ if __name__ == '__main__':
 
     @app.route("/bulk_mailing_post",  methods=['POST'])
     def bulk_mailing():
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
         params = {k:v for k,v in request.form.items() if v != ''}
         mongo_filter = {}
         if 'category' in params:
