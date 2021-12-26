@@ -5,6 +5,7 @@ from pathlib import Path
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'voice', 'sticker', 'video', 'video_note'])
 def chat(message):
+    '''Хендлер чата, если пользователь отправляет сообщение и у него есть собесденик, это сообщение пересылается собеседнику'''
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
     if not user['companion_id']:    return

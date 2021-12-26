@@ -17,6 +17,7 @@ def system_message_filter(message):
         return chat(message)
 
 def blocked_filter(message):
+    '''Фильтр для заблокированных пользователей'''
     user = db.get_or_create_user(message.chat)
     if user['blocked'] is True:
         return bot.send_message(chat_id=message.chat.id, text='<u><b>Сообщение от администрации:</b></u>\n\nВы заблокированны', parse_mode='HTML')
@@ -24,7 +25,6 @@ def blocked_filter(message):
 @bot.message_handler(commands=['start', 'help'])
 def command_start(message):
     user = db.get_or_create_user(message.chat)
-    # db.update_last_action_date(message.chat.id)
     if system_message_filter(message):  return
     if blocked_filter(message):    return
     return bot.send_message(chat_id=message.chat.id, text='Это приветственное сообщение бота', reply_markup=main_keyboard())
@@ -32,6 +32,7 @@ def command_start(message):
 
 @bot.message_handler(regexp="^(Найти собеседника)$")
 def companion(message):
+    '''Поиск собеседника'''
     if blocked_filter(message):    return
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
@@ -79,11 +80,6 @@ def next_companion_inline(call):
         db.next_companion(call.message.chat.id)
         companion(call.message)
 
-# @bot.message_handler(regexp='^(Тест)$')
-# def test_handler(message):
-#     db.update_statistic_finish(message.chat.id, 'output_finish')
-
-
 
 @bot.message_handler(regexp='^(Стоп)$')
 def stop_search_handler(message):
@@ -101,7 +97,6 @@ def stop_search_handler(message):
     bot.send_message(chat_id=message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
 
 
-
 def rating_message(message):
     if blocked_filter(message):    return
     user = db.get_user_on_id(message.chat.id)
@@ -112,7 +107,6 @@ def rating_message(message):
         'message_id': rating_message_companion.message_id 
     }
     db.push_data_rating_companion(user['companion_id'], rating_data_companion)
-
     rating_message = bot.send_message(chat_id=message.chat.id, text='Как вы оцените вашего собеседника?', reply_markup=rating_keyboard())
     rating_data = {
         'user_id': user['companion_id'],
@@ -137,16 +131,14 @@ def rating_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
-    try:
-        user = get_user_on_id(call.message.chat.id)
-        bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-        if user['verified_psychologist'] != False:    return
-        filepath = f'static/verefication_doc/{call.message.chat.id}/'
-        if os.path.exists(filepath):
-            shutil.rmtree(filepath)
-    except Exception as e:
-        print(e)
+    user = get_user_on_id(call.message.chat.id)
+    bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
+    bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    if user['verified_psychologist'] != False:    return
+    filepath = f'static/verefication_doc/{call.message.chat.id}/'
+    if os.path.exists(filepath):
+        shutil.rmtree(filepath)
+
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'verification')
 def verification_handler(call):
@@ -158,6 +150,7 @@ def verification_handler(call):
 
 
 def save_photo(message, file_name):
+    '''Сохранение фото на сервер'''
     file_info = bot.get_file(message.photo[-1].file_id)
     downloaded_file = bot.download_file(file_info.file_path)
     filepath = f'static/verefication_doc/{message.chat.id}/'
@@ -178,7 +171,6 @@ def send_photo_pasport(message):
         bot.register_next_step_handler(message, send_photo_pasport)
 
 
-
 def send_self_photo_with_pasport(message):
     if message.photo:
         save_photo(message, 'selfie_passport_photo')
@@ -187,7 +179,6 @@ def send_self_photo_with_pasport(message):
     else:
         message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
         bot.register_next_step_handler(message, send_self_photo_with_pasport)
-
 
 
 def send_photo_diploma(message):
