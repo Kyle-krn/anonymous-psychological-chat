@@ -1,7 +1,8 @@
 from handlers.handlers import bot
 from database import db
-import os
 from pathlib import Path
+import os
+
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'voice', 'sticker', 'video', 'video_note'])
 def chat(message):

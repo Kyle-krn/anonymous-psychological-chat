@@ -9,6 +9,7 @@ import shutil
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+
 def system_message_filter(message):
     '''В случае если пользователь пишет какое либо системное сообщение и у пользователя активный диалог, пересылает это сообщение
        собеседнику, а не отрабаывает опредленный хендлер'''
@@ -16,11 +17,13 @@ def system_message_filter(message):
     if user['companion_id']:
         return chat(message)
 
+
 def blocked_filter(message):
     '''Фильтр для заблокированных пользователей'''
     user = db.get_or_create_user(message.chat)
     if user['blocked'] is True:
         return bot.send_message(chat_id=message.chat.id, text='<u><b>Сообщение от администрации:</b></u>\n\nВы заблокированны', parse_mode='HTML')
+
 
 @bot.message_handler(commands=['start', 'help'])
 def command_start(message):
@@ -28,8 +31,8 @@ def command_start(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return
     if user['helper'] is None:
-        return bot.send_message(chat_id=message.chat.id, text='Выберите вашу роль:', reply_markup=helper_keyboard())
-    return bot.send_message(chat_id=message.chat.id, text='Это приветственное сообщение бота', reply_markup=main_keyboard())
+        bot.send_message(chat_id=message.chat.id, text='Выберите вашу роль:', reply_markup=helper_keyboard())
+    return bot.send_message(chat_id=message.chat.id, text='Здесь вы найдете помощь.', reply_markup=main_keyboard())
 
 
 @bot.message_handler(regexp="^(Найти собеседника)$")
@@ -51,9 +54,14 @@ def companion(message):
     if answer:
         db.push_date_in_start_dialog_time(user['companion_id'])     # Записываем дату и время начала диалога
         bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Рейтинг вашего собеседника: {user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
+        if user['helper'] is True and user['verified_psychologist'] is True:
+            bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
         companion_user = db.get_user_on_id(user['companion_id'])
         db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
-        return bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Рейтинг вашего собеседника: {companion_user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
+        bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Рейтинг вашего собеседника: {companion_user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
+        if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
+            bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
+        return
     return bot.send_message(chat_id=message.chat.id, text='Ожидание собедсеника ⌛', reply_markup=control_companion(next=False))
 
 
@@ -124,6 +132,7 @@ def rating_message(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'rating')
 def rating_handler(call):
+    '''Ставим собесденику оценку'''
     if blocked_filter(call.message):    return
     data_rating = db.get_data_rating_companion(call.message.chat.id, call.message.message_id)
     if call.data.split('~')[1] == "+":
@@ -138,6 +147,7 @@ def rating_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
+    '''Отмена цикла хендлеров для верификации'''
     user = db.get_user_on_id(call.message.chat.id)
     bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
     bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
@@ -146,8 +156,10 @@ def cancel_register_next_step_handler(call):
     if os.path.exists(filepath):
         shutil.rmtree(filepath)
 
+
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'verification')
 def verification_handler(call):
+    '''Начало загрузки документов для верификации'''
     if blocked_filter(call.message):    return
     bot.delete_message(call.message.chat.id, call.message.message_id)
     if call.data.split('~')[1]  == 'yes':
@@ -168,6 +180,7 @@ def save_photo(message, file_name):
 
 
 def send_photo_pasport(message):
+    '''Шаг #1 - Загружаем фото паспорта'''
     if message.photo:
         save_photo(message, 'passport_photo')
         message = bot.send_message(message.chat.id, f"Пришлите ваше фото с паспортом.", reply_markup=cancel_next_handlers()) 
@@ -178,6 +191,7 @@ def send_photo_pasport(message):
 
 
 def send_self_photo_with_pasport(message):
+    '''Шаг #2 - Загружаем селфи с паспортом'''
     if message.photo:
         save_photo(message, 'selfie_passport_photo')
         message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers()) 
@@ -188,6 +202,7 @@ def send_self_photo_with_pasport(message):
 
 
 def send_photo_diploma(message):
+    '''Шаг #3 - Загружаем фото диплома или трудовой книжки'''
     if message.photo:
         save_photo(message, 'diploma_photo')
         bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)

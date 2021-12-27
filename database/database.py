@@ -8,8 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        self.db = self.client['anonymous_chat']
-
+        self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -153,7 +152,6 @@ class DBclient:
         last_date['delta'] = int(delta.total_seconds())
         self.db.users.update_one({'user_id': user_id}, {'$pull': {'dialog_time': clear_last_date}})
         self.db.users.update_one({'user_id': user_id}, {'$push': {'dialog_time': last_date}})
-
 
     def blocked_user(self, user_id, value):
         '''Блокирует/разблокирует юзера'''

@@ -14,6 +14,7 @@ import statistics
 import datetime
 import telebot
  
+
 @app.route(WEBHOOK_URL_PATH, methods=['POST'])
 def webhook():
     '''Принимает сообщения от telegram'''
@@ -24,6 +25,7 @@ def webhook():
         return ''
     else:
         abort(403)
+
 
 @app.route("/login", methods=['POST', 'GET'])
 def login():
@@ -44,12 +46,14 @@ def login():
                 flash('Попробуйте снова')
     return render_template('login.html')
 
+
 @app.route('/logout', methods=['POST', 'GET'])
 @login_required
 def logout():
     '''Представление выхода из аккаунта'''
     logout_user()
     return redirect(url_for('login'))
+
 
 @app.route('/', methods=['GET', 'HEAD'])
 def index():
@@ -87,6 +91,7 @@ def index():
         users = users.sort(sort_by, sort_params)
     return render_template('index.html', users=users, count_users=count_users, count_search_user=count_search_user)
 
+
 @app.route("/<int:user_id>",  methods=['GET'])
 def user_view(user_id):
     '''Детальное представление пользователя'''
@@ -101,7 +106,6 @@ def user_view(user_id):
     time_in_dialog = str(datetime.timedelta(seconds=second_in_dialog))                                                      # Преобразование секунд в дни или часы
     all_time_in_bot = str(delete_microseconds(datetime.datetime.now() - datetime.datetime.strptime(user['statistic']['start_date'], "%Y-%m-%d %H:%M:%S")))  # Общее время использование бота
     mean_time_in_dialog = str(datetime.timedelta(seconds=mean_time_in_dialog))                                              # Преобразование секунд в дни или часы
-
     statistic = {
         'total_count_message': sum(list_count_message),                         # Всего сообщений написанных собеседнику
         'mean_count_message': statistics.mean((list_count_message or [0])),     # Среднее кол-во сообщений написанных собеседнику
@@ -115,12 +119,14 @@ def user_view(user_id):
         companion = db.db.users.find_one({'user_id': user['companion_id']})
     return render_template('user.html', user=user, companion=companion, statistic=statistic)
 
+
 @app.route("/bulk",  methods=['GET'])
 def bulk_handler():
     '''Представление массовой рассылки пользователям'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
     return render_template('bulk.html')
+
 
 @app.route("/<int:user_id>/verif",  methods=['POST'])
 def user_verif(user_id):
@@ -140,6 +146,7 @@ def user_verif(user_id):
     message = bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
     return redirect(url_for('user_view', user_id=user_id))
 
+
 @app.route("/<int:user_id>/send_message",  methods=['POST'])
 def send_user_message(user_id):
     '''Отправить сообщение пользователю'''
@@ -151,6 +158,7 @@ def send_user_message(user_id):
     except telebot.apihelper.ApiTelegramException:      # Если пользователя не существует
         print('chat_not_found')
     return redirect(url_for('user_view', user_id=user_id))
+
 
 @app.route("/<int:user_id>/blocked",  methods=['POST'])
 def blocked_user(user_id):
@@ -173,6 +181,7 @@ def blocked_user(user_id):
     db.blocked_user(user_id, True)
     return redirect(url_for('user_view', user_id=user_id))
 
+
 @app.route("/<int:user_id>/unblocked",  methods=['POST'])
 def unblocked_user(user_id):
     '''Разблокировка пользователя'''
@@ -185,6 +194,7 @@ def unblocked_user(user_id):
         print('chat_not_found')
     db.blocked_user(user_id, False)
     return redirect(url_for('user_view', user_id=user_id))
+
 
 @app.route("/bulk_mailing_post",  methods=['POST'])
 def bulk_mailing():
@@ -215,6 +225,7 @@ def bulk_mailing():
         except telebot.apihelper.ApiTelegramException:
             print('chat_not_found')
     return redirect(url_for('bulk_handler'))
+
 
 @app.route('/get_username', methods=['POST'])
 def get_username():

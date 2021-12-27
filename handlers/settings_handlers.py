@@ -2,6 +2,7 @@ from handlers.handlers import bot, system_message_filter, blocked_filter
 from database import db
 from keyboard import *
 
+
 @bot.message_handler(regexp="^(Настройки)$")
 def settings_user(message):
     if system_message_filter(message):  return

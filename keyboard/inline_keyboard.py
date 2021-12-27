@@ -18,6 +18,7 @@ def rating_keyboard():
     keyboard.add(button, button1)
     return keyboard
 
+
 def verification_keyboard():
     '''Клавиатура верификации'''
     keyboard = types.InlineKeyboardMarkup()
@@ -26,6 +27,7 @@ def verification_keyboard():
     keyboard.add(button, button1)
     return keyboard
 
+
 def support_keyboard():
     '''Клавиатура тех. поддержка'''
     keyboard = types.InlineKeyboardMarkup()
@@ -33,12 +35,14 @@ def support_keyboard():
     keyboard.add(button)
     return keyboard
 
+
 def cancel_next_handlers():
     '''Клавиатура отмены ввода'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Отмена', callback_data='cancel')
     keyboard.add(button)
     return keyboard
+
 
 def helper_keyboard():
     keyboard = types.InlineKeyboardMarkup()
