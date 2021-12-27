@@ -19,7 +19,7 @@ def i_want_help(message):
     bot.send_message(chat_id=message.chat.id, text='Ваша роль - Я хочу помочь', reply_markup=main_keyboard())
     user = db.get_user_on_id(message.chat.id)
     if user['verified_psychologist'] is False:
-        bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт ', reply_markup=verification_keyboard())
+        bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт', reply_markup=verification_keyboard())
     elif user['verified_psychologist'] == 'under_consideration':
         bot.send_message(chat_id=message.chat.id, text='Ваша заявка на верификацию находтся на рассмотрении.')
     elif user['verified_psychologist'] is True:
@@ -72,3 +72,8 @@ def helper_inline_handler(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
     db.helper(call.message.chat.id, helper_bool)
     bot.send_message(call.message.chat.id, text=text, parse_mode='HTML')
+    if helper_bool is True:
+        bot.send_message(chat_id=call.message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт ', reply_markup=verification_keyboard())
+
+
+

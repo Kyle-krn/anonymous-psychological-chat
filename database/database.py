@@ -149,7 +149,6 @@ class DBclient:
         user = self.db.users.find_one({'user_id': user_id}, {'dialog_time':{'$slice': -1}})
         clear_last_date = user['dialog_time'][0]
         last_date = clear_last_date.copy()
-        print(last_date)
         last_date['end'] = str(datetime.now().isoformat(' ', 'seconds'))
         delta = datetime.now() - datetime.strptime(last_date['start'], "%Y-%m-%d %H:%M:%S")
         last_date['delta'] = int(delta.total_seconds())
