@@ -4,11 +4,13 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import pytz
 
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
         self.db = self.client['anonymous_chat']
+        # self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -21,6 +23,7 @@ class DBclient:
 
     def get_or_create_user(self, user_data):
         '''Создает и отдает юзера'''
+        moscow_time = datetime.now(pytz.timezone('Europe/Moscow'))
         user = self.db.users.find_one({'user_id': user_data.id})
         if user:
             if user['username'] != user_data.username:
@@ -41,7 +44,7 @@ class DBclient:
                 'verified_psychologist': False,         # False - не верифицированный, 'under_consideration' - на рассмотрении, True - верифицированный
                 'blocked': False,                       # True - заблокированный пользователь
                 'statistic': {
-                                'last_action_date': str(datetime.now().isoformat(' ', 'seconds')),  # Последняя активность
+                                'last_action_date': moscow_time,  # Последняя активность
                                 'start_date': str(datetime.now().isoformat(' ', 'seconds')),    # Дата начала использования бота
                                 'output_finish': 0,                         # Сколько раз с пользователем заверешили диалог
                                 'input_finish': 0,                          # Сколько раз пользователь завершал диалог
@@ -83,6 +86,7 @@ class DBclient:
         mongo_filter = {'user_id': {'$nin': [user['user_id'], user['last_companion_id']] + user['block_companion']},
                         'block_companion': {'$ne': user['user_id']},
                         'search_companion': True,
+                        'last_companion_id': {'$ne': user['user_id']},
                         'companion_id': None}
         if user['helper']:      # Включает в поиск противоположную категорию helper
             mongo_filter['helper'] = False
@@ -115,7 +119,8 @@ class DBclient:
     
     def update_last_action_date(self, user_id):
         '''Обнавляет дату и время последнего действия'''
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': str(datetime.now().isoformat(' ', 'seconds'))}})
+        moscow_time = datetime.now(pytz.timezone('Europe/Moscow'))
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': moscow_time}})
 
     def update_statistic_inc(self, user_id, value):
         '''Прибавляет счетчик'''

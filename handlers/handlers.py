@@ -67,7 +67,7 @@ def companion(message):
             if companion_user['verified_psychologist'] is True:
                 bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
         return
-    return bot.send_message(chat_id=message.chat.id, text='Ожидание собедсеника ⌛', reply_markup=control_companion(next=False))
+    return bot.send_message(chat_id=message.chat.id, text='Ожидание собеседника ⌛', reply_markup=control_companion(next=False))
 
 
 @bot.message_handler(regexp='^(Следующий собеседник)$')
