@@ -7,6 +7,7 @@ from handlers import bot
 from keyboard import block_keyboard, main_keyboard
 from database import Users, db
 from webhook_settings import *
+from flask import jsonify
 import os
 import shutil
 import statistics
@@ -76,6 +77,7 @@ def index():
         search_filter['verified_psychologist'] = params['verification']
     users = db.db.users.find(search_filter)
     count_users = db.db.users.count_documents(search_filter)
+    count_search_user = db.db.users.count_documents({'search_companion': True})
     if 'sort' in params:               # Сортировка массива юзеров
         sort_by = params['sort']
         if params['sort_param'] == 'asc':
@@ -83,7 +85,7 @@ def index():
         else:
             sort_params = -1
         users = users.sort(sort_by, sort_params)
-    return render_template('index.html', users=users, count_users=count_users)
+    return render_template('index.html', users=users, count_users=count_users, count_search_user=count_search_user)
 
 @app.route("/<int:user_id>",  methods=['GET'])
 def user_view(user_id):
@@ -213,5 +215,16 @@ def bulk_mailing():
         except telebot.apihelper.ApiTelegramException:
             print('chat_not_found')
     return redirect(url_for('bulk_handler'))
+
+@app.route('/get_username', methods=['POST'])
+def get_username():
+    user = db.get_user_on_id(int(request.form['user_id']))
+    if user['username']:
+        username = user['username']
+    else:
+        username = user['user_id']
+    return jsonify({'username': username})
+
+
 
 

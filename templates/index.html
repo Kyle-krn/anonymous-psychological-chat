@@ -49,6 +49,7 @@
   </div>
   <br>
   <h5 class="text-center">Найдено {{count_users}} пользователей.</h5>
+  <h6 class="text-center text-success">В поиске находится {{count_search_user}} пользователей.</h6>
   <div class="table-responsive">
     <table class="table">
       <thead>
@@ -60,6 +61,7 @@
           <th scope="col">Category</th>
           <th scope="col">Rating</th>
           <th scope="col">Verefication</th>
+          <th scope="col">Поиск</th>
           <th scope="col"></th>
         </tr>
       </thead>
@@ -111,6 +113,17 @@
             <p class="text-success">На рассмотрении</p>
           </td>
           {% endif %}
+          <td>
+            {% if u['search_companion'] == True %}
+              Пользователь в поиске
+            {% elif u['search_companion'] == False %}
+              {% if u['companion_id'] %}
+                В диалоге с <a href="{{ url_for('user_view', user_id=u['companion_id']) }}"><span class='companion_user' id="{{u['companion_id']}}"></span></a>
+              {% else %}
+                Пользователь не в поиске
+              {% endif %}
+            {% endif %}
+          </td>
           <td><a class="btn btn-primary btn-sm" href="{{ url_for('user_view', user_id=u['user_id']) }}"
               role="button">Подробнее</a></td>
         </tr>
@@ -166,6 +179,25 @@
           $('#sort_params_id option[value=' + key + ']').remove();
         });
         }
+      });
+
+      $(document).ready(function() {
+
+      $('.companion_user').each(function( index ) {
+        var id = $(this).attr('id');
+          $.ajax({
+            url: '/get_username',         /* Куда пойдет запрос */
+            method: 'post',             /* Метод передачи (post или get) */
+            dataType: 'json',          /* Тип данных в ответе (xml, json, script, html). */
+            data: {user_id: id},     /* Параметры передаваемые в запросе. */
+            success: function(data){   /* функция которая будет выполнена после успешного запроса.  */
+              $('#'+id).html(data['username']);
+            }
+          });
+          
+      });
+        
+
       });
 </script>
 
