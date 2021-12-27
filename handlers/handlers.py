@@ -108,7 +108,7 @@ def stop_search_handler(message):
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
         db.update_statistic_inc(user['companion_id'], 'input_finish')
         rating_message(message)
-        db.cancel_search(message.chat.id)
+    db.cancel_search(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
 
 
