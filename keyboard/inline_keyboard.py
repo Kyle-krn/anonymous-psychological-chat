@@ -39,3 +39,11 @@ def cancel_next_handlers():
     button = types.InlineKeyboardButton(text='Отмена', callback_data='cancel')
     keyboard.add(button)
     return keyboard
+
+def helper_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='Я хочу помочь', callback_data='helper~true')
+    button1 = types.InlineKeyboardButton(text='Мне нужна помощь', callback_data='helper~false')
+    keyboard.add(button)
+    keyboard.add(button1)
+    return keyboard

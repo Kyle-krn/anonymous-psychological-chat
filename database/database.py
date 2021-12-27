@@ -101,7 +101,7 @@ class DBclient:
             return False
 
     def block_companion(self, user_id):
-        '''Заблокировать собеседника'''
+        '''Заблокировать собеседника - в приложении пока не используется'''
         user = self.get_user_on_id(user_id)
         if not user['companion_id']:
             return
@@ -137,13 +137,11 @@ class DBclient:
         }
         self.db.users.update_one({'user_id': user_id}, {"$push": {'dialog_time': time_dict }})
 
-
     def update_count_message_dialog_time(self, user_id):
         '''Обновляет счетчик сообщений в диалоге'''
         user = self.db.users.find_one({'user_id': user_id}, {'dialog_time':{'$slice': -1}})
         clear_last_date = user['dialog_time'][0]
         self.db.users.update_one({'user_id': user_id, 'dialog_time.start': clear_last_date['start']}, {'$inc': {'dialog_time.$.count_message': 1}})
-
 
     def push_date_in_end_dialog_time(self, user_id):
         # "%Y-%m-%d %H:%M:%S"

@@ -27,6 +27,8 @@ def command_start(message):
     user = db.get_or_create_user(message.chat)
     if system_message_filter(message):  return
     if blocked_filter(message):    return
+    if user['helper'] is None:
+        return bot.send_message(chat_id=message.chat.id, text='Выберите вашу роль:', reply_markup=helper_keyboard())
     return bot.send_message(chat_id=message.chat.id, text='Это приветственное сообщение бота', reply_markup=main_keyboard())
 
 
@@ -38,6 +40,11 @@ def companion(message):
     db.update_last_action_date(message.chat.id)
     if user['helper'] is None:
         return bot.send_message(chat_id=message.chat.id, text='Необходимо выбрать роль, для этого перейдите в настройки', reply_markup=main_keyboard())
+    elif user['helper'] == True:
+        text = '<u><b>Ваша роль - Я хочу помочь</b></u>'
+    elif user['helper'] == False: 
+        text = '<u><b>Ваша роль - Мне нужна помощь</b></u>'
+    bot.send_message(message.chat.id, text=text, parse_mode='HTML')
     answer = db.search_companion(message.chat.id)
 
     user = db.get_or_create_user(message.chat)  # второй раз получаем юзера потому что в search_companion() юзер обновлен
@@ -131,14 +138,13 @@ def rating_handler(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
-    user = get_user_on_id(call.message.chat.id)
+    user = db.get_user_on_id(call.message.chat.id)
     bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
     bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     if user['verified_psychologist'] != False:    return
     filepath = f'static/verefication_doc/{call.message.chat.id}/'
     if os.path.exists(filepath):
         shutil.rmtree(filepath)
-
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'verification')
 def verification_handler(call):

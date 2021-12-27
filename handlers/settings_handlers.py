@@ -58,3 +58,17 @@ def back_handler(message):
     if blocked_filter(message):    return
     db.update_last_action_date(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='👋', reply_markup=main_keyboard())
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'helper')
+def helper_inline_handler(call):
+    helper_bool = call.data.split('~')[1]
+    if helper_bool == 'true':
+        helper_bool = True
+        text = '<u><b>Ваша роль - Я хочу помочь</b></u>'
+    elif helper_bool == 'false':
+        helper_bool = False
+        text = '<u><b>Ваша роль - Мне нужна помощь</b></u>'
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    db.helper(call.message.chat.id, helper_bool)
+    bot.send_message(call.message.chat.id, text=text, parse_mode='HTML')
