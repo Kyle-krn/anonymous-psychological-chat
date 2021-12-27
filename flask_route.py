@@ -227,6 +227,18 @@ def bulk_mailing():
     return redirect(url_for('bulk_handler'))
 
 
+@app.route('/fix', methods=['GET'])
+def fix_bug():
+    users = db.db.users.find({'search_companion': False, 'companion_id': None})
+    for user in users:
+        try:
+            bot.send_message(user['user_id'], text='<u><b>Сообщение от администрации:</b></u>\n\n'+'Фикс бага кто не получил клавиатуру при старте', parse_mode='HTML', reply_markup=main_keyboard())
+        except:
+            print('error')
+    return redirect(url_for('bulk_handler'))
+
+
+
 @app.route('/get_username', methods=['POST'])
 def get_username():
     user = db.get_user_on_id(int(request.form['user_id']))
