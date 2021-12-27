@@ -238,7 +238,6 @@ def fix_bug():
     return redirect(url_for('bulk_handler'))
 
 
-
 @app.route('/get_username', methods=['POST'])
 def get_username():
     user = db.get_user_on_id(int(request.form['user_id']))

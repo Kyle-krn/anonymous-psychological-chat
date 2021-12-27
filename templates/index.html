@@ -83,7 +83,7 @@
             <p class="text-danger">{{u['first_name']}}</p>
           </td>
           {% else %}
-          <td>{{u['first_name']}}</td>
+          <td>{{u['first_name'][:15]}}</td>
           {% endif %}
 
           {% if u['last_name'] == None %}
@@ -91,7 +91,7 @@
             <p class="text-danger">{{u['last_name']}}</p>
           </td>
           {% else %}
-          <td>{{u['last_name']}}</td>
+          <td>{{u['last_name'][:15]}}</td>
           {% endif %}
 
           {% if u['helper'] == True %}

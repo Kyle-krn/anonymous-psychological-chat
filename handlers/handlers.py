@@ -53,14 +53,19 @@ def companion(message):
     user = db.get_or_create_user(message.chat)  # второй раз получаем юзера потому что в search_companion() юзер обновлен
     if answer:
         db.push_date_in_start_dialog_time(user['companion_id'])     # Записываем дату и время начала диалога
-        bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Рейтинг вашего собеседника: {user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
-        if user['helper'] is True and user['verified_psychologist'] is True:
-            bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
+        bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
+        if user['helper'] is True:
+            bot.send_message(chat_id=user['companion_id'], text=f'Рейтинг вашего собеседника: {user["rating"]}')
+            if user['verified_psychologist'] is True:
+                bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
+            
         companion_user = db.get_user_on_id(user['companion_id'])
         db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
-        bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Рейтинг вашего собеседника: {companion_user["rating"]}. Вы можете начать общение.', reply_markup=control_companion())
-        if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
-            bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
+        bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
+        if companion_user['helper'] is True:
+            bot.send_message(chat_id=message.chat.id, text=f'Рейтинг вашего собеседника: {companion_user["rating"]}')
+            if companion_user['verified_psychologist'] is True:
+                bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
         return
     return bot.send_message(chat_id=message.chat.id, text='Ожидание собедсеника ⌛', reply_markup=control_companion(next=False))
 
