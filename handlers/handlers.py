@@ -100,21 +100,30 @@ def next_companion_inline(call):
         db.next_companion(call.message.chat.id)
         companion(call.message)
 
-
 @bot.message_handler(regexp='^(Стоп)$')
-def stop_search_handler(message):
+def stop_companion(message):
     if blocked_filter(message):    return
-    user = db.get_or_create_user(message.chat)
+    bot.delete_message(message.chat.id, message.message_id)
+    user = db.get_user_on_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
-    if user['companion_id']:
-        db.push_date_in_end_dialog_time(message.chat.id) # Записываем дату и время конца диалога
-        db.update_statistic_inc(message.chat.id, 'output_finish')
-        bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
-        db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
-        db.update_statistic_inc(user['companion_id'], 'input_finish')
-        rating_message(message)
-    db.cancel_search(message.chat.id)
-    bot.send_message(chat_id=message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
+    bot.send_message(chat_id=message.chat.id, text='Вы уверены что хотите пропустить собеседника?', reply_markup=yes_no_keyboard('stop_companion'))  
+
+@bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'stop_companion')
+def stop_search_handler(call):
+    if blocked_filter(call.message):    return
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    user = db.get_or_create_user(call.message.chat)
+    db.update_last_action_date(call.message.chat.id)
+    if call.data.split('~')[1] == 'yes':
+        if user['companion_id']:
+            db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
+            db.update_statistic_inc(call.message.chat.id, 'output_finish')
+            bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+            db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
+            db.update_statistic_inc(user['companion_id'], 'input_finish')
+            rating_message(call.message)
+        db.cancel_search(call.message.chat.id)
+        bot.send_message(chat_id=call.message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
 
 
 def rating_message(message):
