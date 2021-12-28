@@ -5,12 +5,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import pytz
+from utils import delete_microseconds
 
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        # self.db = self.client['anonymous_chat']
-        self.db = self.client['chat']
+        self.db = self.client['anonymous_chat']
+        # self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -119,8 +120,7 @@ class DBclient:
     
     def update_last_action_date(self, user_id):
         '''Обнавляет дату и время последнего действия'''
-        moscow_time = datetime.now(pytz.timezone('Europe/Moscow'))
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': moscow_time}})
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': datetime.now().replace(microsecond=0)}})
 
     def update_statistic_inc(self, user_id, value):
         '''Прибавляет счетчик'''

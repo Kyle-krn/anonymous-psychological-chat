@@ -3,6 +3,9 @@
 {% block body %}
 <div class=container>
   <br>
+
+
+
   <div class="accordion" id="accordionExample">
     <div class="accordion-item">
       <h2 class="accordion-header" id="headingOne">
@@ -25,9 +28,9 @@
 
             <select class='form-control' name="verification" id="verefication_id">
               <option value=''>Верификация:</option>
-              <!-- <option value="verif">Только верифицированные</option>
-              <option value="non_verif">Сначала не верифицированные</option>
-              <option value="under_consideration">Сначала на рассмотрении</option> -->
+              <option value="verif">Верифицированные</option>
+              <option value="non_verif">Не верифицированные</option>
+              <option value="under_consideration">На рассмотрении</option>
             </select>
           </div>
           <div class="input-group mb-3">
@@ -40,6 +43,15 @@
             
           </select>
         </div>
+        <div class="input-group mb-3">
+          <select name="search_companion_params" id="sort_id" class='form-control'>
+            <option value="">Поиск:</option>
+            <option value="companion">Только находящиеся в диалоге</option>
+            <option value="search">Только находящиеся в поиске</option>
+            <option value="non_search">Только находящиеся не в поиске</option>
+        </select>
+
+        </div>
           <div class="text-center">
           <button class="btn btn-outline-success btn-lg" type="submit" id="button-addon2">Поиск</button>
         </div>
@@ -50,6 +62,8 @@
   <br>
   <h5 class="text-center">Найдено {{count_users}} пользователей.</h5>
   <h6 class="text-center text-success">В поиске находится {{count_search_user}} пользователей.</h6>
+  <h6 class="text-center text-success">Онлайн за последние 24 часа {{today_online_users}} пользователей.</h6>
+  <h6 class="text-center text-success">Онлайн за последние 10 минут {{now_online_users}} пользователей.</h6>
   <div class="table-responsive">
     <table class="table">
       <thead>
@@ -153,18 +167,18 @@
 </div>
 
 <script>
-      var option_list = {'verif': 'Только верифицированные', 'non_verif': 'Только не верифицированные', 'under_consideration': 'Только на рассмотрении'}
-      $( "#category_id" ).change(function() {
-        if ($(this).val() == 'helper') {
-          $.each(option_list, function(key, value) {
-          $('#verefication_id').append('<option value="' + key + '">' + value + '</option>');
-        });
-      } else {
-          $.each(option_list, function(key, value) {
-          $('#verefication_id option[value=' + key + ']').remove();
-        });
-      }
-      });
+      // var option_list = {'verif': 'Только верифицированные', 'non_verif': 'Только не верифицированные', 'under_consideration': 'Только на рассмотрении'}
+      // $( "#category_id" ).change(function() {
+      //   if ($(this).val() == 'helper') {
+      //     $.each(option_list, function(key, value) {
+      //     $('#verefication_id').append('<option value="' + key + '">' + value + '</option>');
+      //   });
+      // } else {
+      //     $.each(option_list, function(key, value) {
+      //     $('#verefication_id option[value=' + key + ']').remove();
+      //   });
+      // }
+      // });
 
       var option_list_sort = {'asc': 'По возрастанию', 'desc': 'По убыванию'}
       $( "#sort_id" ).change(function() {

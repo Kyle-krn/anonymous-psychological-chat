@@ -7,8 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <script src="https://kit.fontawesome.com/c044e4f0d6.js" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 
@@ -25,11 +26,10 @@
             <use xlink:href="#bootstrap"></use>
           </svg>
         </a>
-
         <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
           <li><a href="{{url_for('index')}}" class="nav-link px-2 text-white">Список юзеров</a></li>
           <li><a href="{{url_for('bulk_handler')}}" class="nav-link px-2 text-white">Массовая рассылка</a></li>
-
+          <li><a class="btn btn-primary" href="/?username=&category=&verification=under_consideration&sort=&search_companion_params=" role="button">На рассмотрении<span class="badge bg-success">{{verification_count}}</span></a></li>
         </ul>
 
 

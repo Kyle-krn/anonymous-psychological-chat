@@ -14,6 +14,11 @@ import shutil
 import statistics
 import datetime
 import telebot
+
+@app.context_processor
+def test_context():
+    verification_count = db.db.users.count_documents({'verified_psychologist': 'under_consideration'})
+    return dict(verification_count=verification_count)
  
 
 @app.route(WEBHOOK_URL_PATH, methods=['POST'])
@@ -61,7 +66,7 @@ def index():
     '''Представление списка пользователей'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
-    params = {k:v for k,v in request.args.items() if v != ''}
+    params = {k:v for k,v in request.args.items() if v != ''}    
     search_filter = {}
     if 'username' in params:            # Фильтр по никнейму
         nick = params['username']
@@ -80,9 +85,21 @@ def index():
         elif params['verification'] == 'under_consideration':
             params['verification'] == 'under_consideration'
         search_filter['verified_psychologist'] = params['verification']
+    if 'search_companion_params' in params:
+        if params['search_companion_params'] == 'companion':
+            # params['search_companion_params'] = {'companion_id': {'$ne': None}}
+            search_filter['companion_id'] = {'$ne': None}
+        elif params['search_companion_params'] == 'search':
+            search_filter['search_companion'] = True
+        elif params['search_companion_params'] == 'non_search': 
+            search_filter['search_companion'] = False
     users = db.db.users.find(search_filter)
     count_users = db.db.users.count_documents(search_filter)
     count_search_user = db.db.users.count_documents({'search_companion': True})
+    today_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=60 * 24)}})
+    now_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=10)}})
+    sort_by = '_id'
+    sort_params = 1
     if 'sort' in params:               # Сортировка массива юзеров
         sort_by = params['sort']
         if params['sort_param'] == 'asc':
@@ -90,7 +107,11 @@ def index():
         else:
             sort_params = -1
         users = users.sort(sort_by, sort_params)
-    return render_template('index.html', users=users, count_users=count_users, count_search_user=count_search_user)
+    return render_template('index.html', users=users, 
+                                         count_users=count_users, 
+                                         count_search_user=count_search_user,
+                                         today_online_users=today_online_users,
+                                         now_online_users=now_online_users)
 
 
 @app.route("/<int:user_id>",  methods=['GET'])
@@ -99,6 +120,7 @@ def user_view(user_id):
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
     user = db.get_user_on_id(user_id)
+    user['statistic']['last_action_date'] += datetime.timedelta(hours=3, minutes=0)
     if user is None:
         abort(404)
     list_count_message = [x['count_message'] for x in user['dialog_time']]                                                  # Массив кол-ва сообщений в диалогах
@@ -126,6 +148,21 @@ def bulk_handler():
     '''Представление массовой рассылки пользователям'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
+    return render_template('bulk.html')
+
+@app.route("/test",  methods=['GET'])
+def test_handler():
+    '''Представление массовой рассылки пользователям'''
+    users = db.db.users.find()
+    dat = datetime.datetime.now() - datetime.timedelta(minutes=10)
+    # print(dat)
+    # date_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': dat}})
+    # print(date_users)
+
+    null_user = db.db.users.find({'companion_id': {'$ne': None}})
+    for u in null_user:
+        print(u)
+        print('\n\n')
     return render_template('bulk.html')
 
 
@@ -228,19 +265,10 @@ def bulk_mailing():
     return redirect(url_for('bulk_handler'))
 
 
-@app.route('/fix', methods=['GET'])
-def fix_bug():
-    users = db.db.users.find({'search_companion': False, 'companion_id': None})
-    for user in users:
-        try:
-            bot.send_message(user['user_id'], text='<u><b>Сообщение от администрации:</b></u>\n\n'+'Фикс бага кто не получил клавиатуру при старте', parse_mode='HTML', reply_markup=main_keyboard())
-        except:
-            print('error')
-    return redirect(url_for('bulk_handler'))
-
 
 @app.route('/get_username', methods=['POST'])
 def get_username():
+    '''AJAX получение username собеседника'''
     user = db.get_user_on_id(int(request.form['user_id']))
     if user['username']:
         username = user['username']
@@ -249,5 +277,6 @@ def get_username():
     return jsonify({'username': username})
 
 
+# @app.route('/badge_count', methods=['GET'])
 
 

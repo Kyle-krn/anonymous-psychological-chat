@@ -68,6 +68,7 @@ def companion(message):
                 bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
         return
     return bot.send_message(chat_id=message.chat.id, text='Ожидание собеседника ⌛', reply_markup=control_companion(next=False))
+    # except telebot.apihelper.ApiTelegramException as e:
 
 
 @bot.message_handler(regexp='^(Следующий собеседник)$')
@@ -100,6 +101,7 @@ def next_companion_inline(call):
         db.next_companion(call.message.chat.id)
         companion(call.message)
 
+
 @bot.message_handler(regexp='^(Стоп)$')
 def stop_companion(message):
     if blocked_filter(message):    return
@@ -107,6 +109,7 @@ def stop_companion(message):
     user = db.get_user_on_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='Вы уверены что хотите пропустить собеседника?', reply_markup=yes_no_keyboard('stop_companion'))  
+
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'stop_companion')
 def stop_search_handler(call):
@@ -118,10 +121,14 @@ def stop_search_handler(call):
         if user['companion_id']:
             db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
             db.update_statistic_inc(call.message.chat.id, 'output_finish')
-            bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+            try:
+                '''Если собеседник остановил бота или удалил телеграм'''
+                bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+                rating_message(call.message)
+            except telebot.apihelper.ApiTelegramException:
+                pass
             db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
             db.update_statistic_inc(user['companion_id'], 'input_finish')
-            rating_message(call.message)
         db.cancel_search(call.message.chat.id)
         bot.send_message(chat_id=call.message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
 
