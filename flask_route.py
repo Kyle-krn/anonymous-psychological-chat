@@ -150,21 +150,6 @@ def bulk_handler():
         return redirect(url_for('login'))
     return render_template('bulk.html')
 
-@app.route("/test",  methods=['GET'])
-def test_handler():
-    '''Представление массовой рассылки пользователям'''
-    users = db.db.users.find()
-    dat = datetime.datetime.now() - datetime.timedelta(minutes=10)
-    # print(dat)
-    # date_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': dat}})
-    # print(date_users)
-
-    null_user = db.db.users.find({'companion_id': {'$ne': None}})
-    for u in null_user:
-        print(u)
-        print('\n\n')
-    return render_template('bulk.html')
-
 
 @app.route("/<int:user_id>/verif",  methods=['POST'])
 def user_verif(user_id):
