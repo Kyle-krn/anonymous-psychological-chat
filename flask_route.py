@@ -61,12 +61,15 @@ def logout():
     return redirect(url_for('login'))
 
 
+@app.route('/<int:page>', methods=['GET', 'HEAD'])
 @app.route('/', methods=['GET', 'HEAD'])
-def index():
+def index(page=1):
     '''Представление списка пользователей'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
-    params = {k:v for k,v in request.args.items() if v != ''}    
+    params = {k:v for k,v in request.args.items() if v != ''}
+    copy_params = params.copy()
+
     search_filter = {}
     if 'username' in params:            # Фильтр по никнейму
         nick = params['username']
@@ -93,11 +96,11 @@ def index():
             search_filter['search_companion'] = True
         elif params['search_companion_params'] == 'non_search': 
             search_filter['search_companion'] = False
-    users = db.db.users.find(search_filter)
-    count_users = db.db.users.count_documents(search_filter)
     count_search_user = db.db.users.count_documents({'search_companion': True})
     today_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=60 * 24)}})
     now_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=10)}})
+    users = db.db.users.find(search_filter)
+    count_users = db.db.users.count_documents(search_filter)
     sort_by = '_id'
     sort_params = 1
     if 'sort' in params:               # Сортировка массива юзеров
@@ -106,15 +109,42 @@ def index():
             sort_params = 1
         else:
             sort_params = -1
-        users = users.sort(sort_by, sort_params)
+    users = users.sort(sort_by, sort_params)
+    limit = 20
+    last_page = count_users/limit
+    
+    previous_page = page-1
+    next_page = page+1
+    if type(last_page) == float:
+        last_page = int(last_page+1)
+    elif type(last_page) == int:
+        last_page = last_page - 1
+    if page == 1:
+        previous_page = None
+    elif page == last_page:
+        next_page = None
+    elif page > last_page:
+        return redirect(url_for('index', **copy_params))
+
+    query_string = request.query_string.decode('utf-8')
+    if query_string:
+        query_string = '?' + query_string
+    offset = (page - 1) * 20
+    users = users.skip(offset).limit(limit)
     return render_template('index.html', users=users, 
                                          count_users=count_users, 
                                          count_search_user=count_search_user,
                                          today_online_users=today_online_users,
-                                         now_online_users=now_online_users)
+                                         now_online_users=now_online_users,
+                                         query_string=query_string,
+                                         previous_page=previous_page,
+                                         next_page=next_page,
+                                         page=page,
+                                         last_page=last_page,
+                                         offset=offset)
 
 
-@app.route("/<int:user_id>",  methods=['GET'])
+@app.route("/user/<int:user_id>",  methods=['GET'])
 def user_view(user_id):
     '''Детальное представление пользователя'''
     if current_user.is_authenticated is False:
@@ -150,6 +180,13 @@ def bulk_handler():
         return redirect(url_for('login'))
     return render_template('bulk.html')
 
+@app.route("/test",  methods=['GET'])
+def test_hadfdndler():
+    x = db.db.users.find().skip(10).limit(10)
+    for i in x:
+        print(i)
+        print('\n')
+    return render_template('bulk.html')
 
 @app.route("/<int:user_id>/verif",  methods=['POST'])
 def user_verif(user_id):
