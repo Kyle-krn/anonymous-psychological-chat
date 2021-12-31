@@ -107,6 +107,9 @@ def stop_companion(message):
     if blocked_filter(message):    return
     bot.delete_message(message.chat.id, message.message_id)
     user = db.get_user_on_id(message.chat.id)
+    if user['companion_id'] is None:
+        db.cancel_search(message.chat.id)
+        return bot.send_message(chat_id=message.chat.id, text='У вас нет активного диалога.', reply_markup=main_keyboard())
     db.update_last_action_date(message.chat.id)
     bot.send_message(chat_id=message.chat.id, text='Вы уверены что хотите пропустить собеседника?', reply_markup=yes_no_keyboard('stop_companion'))  
 

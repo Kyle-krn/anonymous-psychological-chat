@@ -119,11 +119,12 @@ def index(page=1):
         last_page = int(last_page+1)
     elif type(last_page) == int:
         last_page = last_page - 1
+    print(last_page)
     if page == 1:
         previous_page = None
-    elif page == last_page:
+    if page == last_page:
         next_page = None
-    elif page > last_page:
+    if page > last_page:
         return redirect(url_for('index', **copy_params))
 
     query_string = request.query_string.decode('utf-8')
@@ -182,10 +183,14 @@ def bulk_handler():
 
 @app.route("/test",  methods=['GET'])
 def test_hadfdndler():
-    x = db.db.users.find().skip(10).limit(10)
-    for i in x:
-        print(i)
-        print('\n')
+    x = db.db.users.find()
+    count = 0
+    for u in x:
+        if u['companion_id']:
+            companion = db.get_user_on_id(u['companion_id'])
+            if companion['companion_id'] is None:
+                count += 1
+                print(u)
     return render_template('bulk.html')
 
 @app.route("/<int:user_id>/verif",  methods=['POST'])
@@ -276,14 +281,20 @@ def bulk_mailing():
         else:
             mongo_filter['verified_psychologist'] = 'under_consideration'
     users = db.db.users.find(mongo_filter)
-    for user in users:
+    count_users = db.db.users.count_documents(mongo_filter)
+    photo_file_id = None
+    for item in range(count_users):
         try:
             if 'img' in request.files:
-                bot.send_photo(user['user_id'], request.files['img'], caption=request.form['text'], parse_mode='HTML')
+                if item == 0:
+                    message = bot.send_photo(users[item]['user_id'], request.files['img'], caption=request.form['text'], parse_mode='HTML')
+                    photo_file_id = message.photo[2].file_id
+                else:
+                    bot.send_photo(users[item]['user_id'], photo_file_id)
             else:
                 bot.send_message(user['user_id'], text='<u><b>Сообщение от администрации:</b></u>\n\n'+request.form['text'], parse_mode='HTML')
-        except telebot.apihelper.ApiTelegramException:
-            print('chat_not_found')
+        except telebot.apihelper.ApiTelegramException as e:
+            print(e)
     return redirect(url_for('bulk_handler'))
 
 
