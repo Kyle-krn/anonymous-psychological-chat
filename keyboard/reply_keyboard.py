@@ -25,10 +25,13 @@ def settings_keyboard():
     button = types.KeyboardButton('Я хочу помочь')
     button1 = types.KeyboardButton('Мне нужна помощь')
     button2 = types.KeyboardButton('Мой рейтинг')
-    button3 = types.KeyboardButton('Назад')
+    button3 = types.KeyboardButton('Мой баланс')
+    button4 = types.KeyboardButton('Пополнить счёт')
+    button5 = types.KeyboardButton('Назад')
     keyboard.add(button, button1)
-    keyboard.add(button2)
-    keyboard.add(button3)
+    keyboard.add(button2, button3)
+    keyboard.add(button4)
+    keyboard.add(button5)
     return keyboard
 
 

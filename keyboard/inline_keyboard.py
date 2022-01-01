@@ -51,3 +51,25 @@ def helper_keyboard():
     keyboard.add(button)
     keyboard.add(button1)
     return keyboard
+
+def choise_sum_qiwi():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='300 р.', callback_data='qiwi_order~300')
+    button1 = types.InlineKeyboardButton(text='500 р.', callback_data='qiwi_order~500')
+    button2 = types.InlineKeyboardButton(text='700 р.', callback_data='qiwi_order~700')
+    button3 = types.InlineKeyboardButton(text='1000 р.', callback_data='qiwi_order~1000')
+    button4 = types.InlineKeyboardButton(text='Отмена', callback_data='qiwi_order~cancel')
+    keyboard.add(button, button1)
+    keyboard.add(button2, button3)
+    keyboard.add(button4)
+    return keyboard
+
+def order_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='Проверить платёж', callback_data='check_payment')
+    button1 = types.InlineKeyboardButton(text='Тех. поддержка', url='https://t.me/kyle_krn')
+    button2 = types.InlineKeyboardButton(text='Отмена', callback_data='cancel_payment')
+    keyboard.add(button)
+    keyboard.add(button1, button2)
+    return keyboard
+    

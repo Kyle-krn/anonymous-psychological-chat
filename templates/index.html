@@ -159,7 +159,7 @@
       </li>
       {% if last_page - page >= 2 %}
         {% if page > 2 %}
-          <li class="page-item"><a class="page-link" href="/{{query_string}}{{query_string}}">1</a></li>
+          <li class="page-item"><a class="page-link" href="/{{query_string}}">1</a></li>
           <li class="page-item"><a class="page-link" href="" disabled="disabled">...</a></li>
         {% endif %}
         <li class="page-item active"><a class="page-link" href="/{{page}}{{query_string}}">{{page}} </a></li>
@@ -178,7 +178,7 @@
         <li class="page-item"><a class="page-link" href="{{page+1}}{{query_string}}">{{page+1}}</a></li>
       {% elif last_page - page >= 0 %}
         {% if page > 2 %}
-            <li class="page-item"><a class="page-link" href="/{{query_string}}{{query_string}}">1</a></li>
+            <li class="page-item"><a class="page-link" href="/{{query_string}}">1</a></li>
             <li class="page-item"><a class="page-link" href="" disabled="disabled">...</a></li>
         {% endif %}
         <li class="page-item active"><a class="page-link" href="{{page}}{{query_string}}">{{page}}</a></li>

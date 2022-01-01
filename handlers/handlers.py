@@ -59,7 +59,7 @@ def companion(message):
             if user['verified_psychologist'] is True:
                 bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
             
-        companion_user = db.get_user_on_id(user['companion_id'])
+        companion_user = db.get_user_by_id(user['companion_id'])
         db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
         bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
         if companion_user['helper'] is True:
@@ -75,7 +75,7 @@ def companion(message):
 def next_companion(message):
     if blocked_filter(message):    return
     bot.delete_message(message.chat.id, message.message_id)
-    user = db.get_user_on_id(message.chat.id)
+    user = db.get_user_by_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
     if not user['companion_id']:
         return companion(message)
@@ -86,12 +86,12 @@ def next_companion(message):
 def next_companion_inline(call):
     if blocked_filter(call.message):    return
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    user = db.get_user_on_id(call.message.chat.id)
+    user = db.get_user_by_id(call.message.chat.id)
     db.update_last_action_date(call.message.chat.id)
     if not user['companion_id']:
         return companion(call.message)
     if call.data.split('~')[1] == 'yes':
-        user = db.get_user_on_id(call.message.chat.id)
+        user = db.get_user_by_id(call.message.chat.id)
         db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
         db.update_statistic_inc(call.message.chat.id, 'output_finish')
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
@@ -106,7 +106,7 @@ def next_companion_inline(call):
 def stop_companion(message):
     if blocked_filter(message):    return
     bot.delete_message(message.chat.id, message.message_id)
-    user = db.get_user_on_id(message.chat.id)
+    user = db.get_user_by_id(message.chat.id)
     if user['companion_id'] is None:
         db.cancel_search(message.chat.id)
         return bot.send_message(chat_id=message.chat.id, text='У вас нет активного диалога.', reply_markup=main_keyboard())
@@ -138,7 +138,7 @@ def stop_search_handler(call):
 
 def rating_message(message):
     if blocked_filter(message):    return
-    user = db.get_user_on_id(message.chat.id)
+    user = db.get_user_by_id(message.chat.id)
     db.update_last_action_date(message.chat.id)
     rating_message_companion = bot.send_message(chat_id=user['companion_id'], text='Как вы оцените вашего собеседника?', reply_markup=rating_keyboard())
     rating_data_companion = {
@@ -172,7 +172,7 @@ def rating_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
     '''Отмена цикла хендлеров для верификации'''
-    user = db.get_user_on_id(call.message.chat.id)
+    user = db.get_user_by_id(call.message.chat.id)
     bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
     bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     if user['verified_psychologist'] != False:    return

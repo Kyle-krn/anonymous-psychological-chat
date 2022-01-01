@@ -18,7 +18,7 @@ def i_want_help(message):
     db.update_last_action_date(message.chat.id)
     db.helper(message.chat.id, True)
     bot.send_message(chat_id=message.chat.id, text='Ваша роль - Я хочу помочь', reply_markup=main_keyboard())
-    user = db.get_user_on_id(message.chat.id)
+    user = db.get_user_by_id(message.chat.id)
     if user['verified_psychologist'] is False:
         bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт', reply_markup=verification_keyboard())
     elif user['verified_psychologist'] == 'under_consideration':
@@ -41,7 +41,7 @@ def my_rating(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return
     db.update_last_action_date(message.chat.id)
-    user = db.get_user_on_id(message.chat.id)
+    user = db.get_user_by_id(message.chat.id)
     return bot.send_message(chat_id=message.chat.id, text=f'Ваш рейтинг: {user["rating"]}.')
 
 

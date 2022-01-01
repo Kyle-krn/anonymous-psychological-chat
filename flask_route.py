@@ -118,8 +118,7 @@ def index(page=1):
     if type(last_page) == float:
         last_page = int(last_page+1)
     elif type(last_page) == int:
-        last_page = last_page - 1
-    print(last_page)
+        last_page = last_page
     if page == 1:
         previous_page = None
     if page == last_page:
@@ -150,7 +149,7 @@ def user_view(user_id):
     '''Детальное представление пользователя'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
-    user = db.get_user_on_id(user_id)
+    user = db.get_user_by_id(user_id)
     user['statistic']['last_action_date'] += datetime.timedelta(hours=3, minutes=0)
     if user is None:
         abort(404)
@@ -187,7 +186,7 @@ def test_hadfdndler():
     count = 0
     for u in x:
         if u['companion_id']:
-            companion = db.get_user_on_id(u['companion_id'])
+            companion = db.get_user_by_id(u['companion_id'])
             if companion['companion_id'] is None:
                 count += 1
                 print(u)
@@ -230,7 +229,7 @@ def blocked_user(user_id):
     '''Блокировка пользователя'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
-    user = db.get_user_on_id(user_id)
+    user = db.get_user_by_id(user_id)
     if user['companion_id']:            # Если у пользователя есть собесендик, завершаем диалог с ним
         db.push_date_in_end_dialog_time(user_id) # Записываем дату и время конца диалога
         db.update_statistic_inc(user_id, 'output_finish')
@@ -302,7 +301,7 @@ def bulk_mailing():
 @app.route('/get_username', methods=['POST'])
 def get_username():
     '''AJAX получение username собеседника'''
-    user = db.get_user_on_id(int(request.form['user_id']))
+    user = db.get_user_by_id(int(request.form['user_id']))
     if user['username']:
         username = user['username']
     else:

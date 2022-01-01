@@ -15,7 +15,7 @@ class DBclient:
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
-        user = self.get_user_on_id(user_id)
+        user = self.get_user_by_id(user_id)
         self.db.users.update_one({'user_id': user_id}, {'$set': {'search_companion': False, 'companion_id': None}})
         if user['companion_id']:
             self.db.users.update_one({'user_id': user_id}, {'$set': {'last_companion_id': user['companion_id']}})
@@ -50,12 +50,17 @@ class DBclient:
                                 'output_finish': 0,                         # Сколько раз с пользователем заверешили диалог
                                 'input_finish': 0,                          # Сколько раз пользователь завершал диалог
                              },
-                'dialog_time': []                       # Массив со статистикой диалогов
+                'dialog_time': [],                       # Массив со статистикой диалогов
+                
+                
+                'temp_payment': None,
+                'balance': 0,
+                'history_payment': []
             }
             self.db.users.insert_one(user)
         return user
 
-    def get_user_on_id(self, user_id):
+    def get_user_by_id(self, user_id):
         '''Получить пользователя по id'''
         return self.db.users.find_one({'user_id': user_id})
 
@@ -83,7 +88,7 @@ class DBclient:
 
     def search_companion(self, user_id):
         '''Поиск собеседника'''
-        user = self.get_user_on_id(user_id)
+        user = self.get_user_by_id(user_id)
         mongo_filter = {'user_id': {'$nin': [user['user_id'], user['last_companion_id']] + user['block_companion']},
                         'block_companion': {'$ne': user['user_id']},
                         'search_companion': True,
@@ -106,7 +111,7 @@ class DBclient:
 
     def block_companion(self, user_id):
         '''Заблокировать собеседника - в приложении пока не используется'''
-        user = self.get_user_on_id(user_id)
+        user = self.get_user_by_id(user_id)
         if not user['companion_id']:
             return
         self.db.users.update_one({'user_id': user['user_id']}, {'$push': {'block_companion': user['companion_id']}, '$set': {'search_companion': False, 'companion_id': None}})
@@ -114,7 +119,7 @@ class DBclient:
 
     def next_companion(self, user_id):
         '''Поиск следующего собесендика'''
-        user = self.get_user_on_id(user_id)
+        user = self.get_user_by_id(user_id)
         self.db.users.update_one({'user_id': user['user_id']}, {'$set': {'last_companion_id': user['companion_id']}})
         self.db.users.update_one({'user_id': user['companion_id']}, {'$set': {'last_companion_id': user['user_id'], 'search_companion': False, 'companion_id': None}})
     
@@ -162,6 +167,23 @@ class DBclient:
         '''Блокирует/разблокирует юзера'''
         self.db.users.update_one({'user_id': user_id}, {'$set': {'blocked': value}})
 
+    def set_temp_payment(self, user_id, coast, billid, date, pay_url):
+        data = {
+            'date': date,
+            'billid': billid,
+            'coast': coast,
+            'pay_url': pay_url
+        }
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': data}})
+
+    def delete_temp_payment(self, user_id):
+        self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': None}})
         
+    def push_paid_payment(self, user_id, payment):
+        self.db.users.update_one({'user_id': user_id}, {'$push': {'history_payment': payment}})
+
+    def inc_balance(self, user_id, value):
+        self.db.users.update_one({'user_id': user_id}, {'$inc': {'balance': value}})
+
 db = DBclient()
 
