@@ -10,8 +10,8 @@ from utils import delete_microseconds
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        # self.db = self.client['anonymous_chat']
-        self.db = self.client['chat']
+        self.db = self.client['anonymous_chat']
+        # self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''

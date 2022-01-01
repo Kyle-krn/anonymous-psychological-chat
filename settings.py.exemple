@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 TELEGRAM_TOKEN = 'Ваш токен телеграм бота'
 MONGO_LINK = 'Ссылка на MongoDB'
 HOST = 'IP сервера'
+QIWI_PRIVATE_KEY = "Киви токен p2p магазина QIWI"
 
 app = Flask(__name__)
 app.config.from_object(__name__)
