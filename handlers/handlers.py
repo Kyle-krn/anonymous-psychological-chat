@@ -35,41 +35,46 @@ def command_start(message):
     return bot.send_message(chat_id=message.chat.id, text='Здесь вы найдете помощь.', reply_markup=main_keyboard())
 
 
+
 @bot.message_handler(regexp="^(Найти собеседника)$")
 def companion(message):
     '''Поиск собеседника'''
-    if blocked_filter(message):    return
-    user = db.get_or_create_user(message.chat)
-    db.update_last_action_date(message.chat.id)
-    if user['helper'] is None:
-        return bot.send_message(chat_id=message.chat.id, text='Необходимо выбрать роль, для этого перейдите в настройки', reply_markup=main_keyboard())
-    elif user['helper'] == True:
-        text = '<u><b>Ваша роль - Я хочу помочь</b></u>'
-    elif user['helper'] == False: 
-        text = '<u><b>Ваша роль - Мне нужна помощь</b></u>'
-    bot.send_message(message.chat.id, text=text, parse_mode='HTML')
-    answer = db.search_companion(message.chat.id)
+    try:
+        if blocked_filter(message):    return
+        user = db.get_or_create_user(message.chat)
+        db.update_last_action_date(message.chat.id)
+        if user['helper'] is None:
+            return bot.send_message(chat_id=message.chat.id, text='Необходимо выбрать роль, для этого перейдите в настройки', reply_markup=main_keyboard())
+        elif user['helper'] == True:
+            text = '<u><b>Ваша роль - Я хочу помочь</b></u>'
+        elif user['helper'] == False: 
+            text = '<u><b>Ваша роль - Мне нужна помощь</b></u>'
+        bot.send_message(message.chat.id, text=text, parse_mode='HTML')
+        answer = db.search_companion(message.chat.id)
 
-    user = db.get_or_create_user(message.chat)  # второй раз получаем юзера потому что в search_companion() юзер обновлен
-    if answer:
-        db.push_date_in_start_dialog_time(user['companion_id'])     # Записываем дату и время начала диалога
-        bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
-        if user['helper'] is True:
-            bot.send_message(chat_id=user['companion_id'], text=f'Рейтинг вашего собеседника: {user["rating"]}')
-            if user['verified_psychologist'] is True:
-                bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
-            
-        companion_user = db.get_user_by_id(user['companion_id'])
-        db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
-        bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
-        if companion_user['helper'] is True:
-            bot.send_message(chat_id=message.chat.id, text=f'Рейтинг вашего собеседника: {companion_user["rating"]}')
-            if companion_user['verified_psychologist'] is True:
-                bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
-        return
-    return bot.send_message(chat_id=message.chat.id, text='Ожидание собеседника ⌛', reply_markup=control_companion(next=False))
-    # except telebot.apihelper.ApiTelegramException as e:
-
+        user = db.get_or_create_user(message.chat)  # второй раз получаем юзера потому что в search_companion() юзер обновлен
+        if answer:
+            db.push_date_in_start_dialog_time(user['companion_id'])     # Записываем дату и время начала диалога
+            try:
+                bot.send_message(chat_id=user['companion_id'], text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
+                if user['helper'] is True:
+                    bot.send_message(chat_id=user['companion_id'], text=f'Рейтинг вашего собеседника: {user["rating"]}')
+                    if user['verified_psychologist'] is True:
+                        bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник верифицированный специалист ✔️')
+            except telebot.apihelper.ApiTelegramException:
+                pass
+                # Здесь сделать удаление неактивных аккаунтов и везде где отправляет сообщение компаньону
+            companion_user = db.get_user_by_id(user['companion_id'])
+            db.push_date_in_start_dialog_time(message.chat.id)          # Записываем дату и время начала диалога
+            bot.send_message(chat_id=message.chat.id, text=f'Собеседник найден! Вы можете начать общение.', reply_markup=control_companion())
+            if companion_user['helper'] is True:
+                bot.send_message(chat_id=message.chat.id, text=f'Рейтинг вашего собеседника: {companion_user["rating"]}')
+                if companion_user['verified_psychologist'] is True:
+                    bot.send_message(chat_id=message.chat.id, text='Ваш собеседник верифицированный специалист ✔️')
+            return
+        return bot.send_message(chat_id=message.chat.id, text='Ожидание собеседника ⌛', reply_markup=control_companion(next=False))
+    except Exception as e:
+        print(e)
 
 @bot.message_handler(regexp='^(Следующий собеседник)$')
 def next_companion(message):

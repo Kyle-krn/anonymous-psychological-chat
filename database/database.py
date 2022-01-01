@@ -10,8 +10,8 @@ from utils import delete_microseconds
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        self.db = self.client['anonymous_chat']
-        # self.db = self.client['chat']
+        # self.db = self.client['anonymous_chat']
+        self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -55,7 +55,13 @@ class DBclient:
                 
                 'temp_payment': None,
                 'balance': 0,
-                'history_payment': []
+                'history_payment': [],
+                'about_me': {
+                    'price': 0,
+                    'name': '',
+                    'about': ''
+                },
+                'premium_search': False
             }
             self.db.users.insert_one(user)
         return user
@@ -98,6 +104,14 @@ class DBclient:
             mongo_filter['helper'] = False
         else:
             mongo_filter['helper'] = True
+        
+        if user['helper'] is True and user['verified_psychologist'] != True:
+            mongo_filter['premium_search'] = False
+
+        if user['helper'] is False and user['premium_search'] is True:
+            mongo_filter['verified_psychologist'] = True
+        elif user['helper'] is True and user['premium_search'] is True:
+            mongo_filter['balance'] = {'$gt': 1} 
 
         if self.db.users.find_one(mongo_filter):     # Если хоть один юзер находится в поиске
             for item in self.db.users.aggregate([{'$match': mongo_filter}, {'$sample' : {'size': 1}}]):
@@ -169,6 +183,7 @@ class DBclient:
 
     def set_temp_payment(self, user_id, coast, billid, date, pay_url):
         data = {
+            'status': 'replenishment',
             'date': date,
             'billid': billid,
             'coast': coast,
@@ -184,6 +199,9 @@ class DBclient:
 
     def inc_balance(self, user_id, value):
         self.db.users.update_one({'user_id': user_id}, {'$inc': {'balance': value}})
+
+    def set_value(self, user_id, key, value):
+        self.db.users.update_one({'user_id': user_id}, {'$set': {key: value}})
 
 db = DBclient()
 

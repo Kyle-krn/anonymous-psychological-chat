@@ -19,16 +19,20 @@ def block_keyboard():
     return keyboard
 
 
-def settings_keyboard():
+def settings_keyboard(user):
     '''Клавиатура настроек'''
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton('Я хочу помочь')
+    if user['verified_psychologist'] is True:
+        about_me_button = types.KeyboardButton('Обо мне')
     button1 = types.KeyboardButton('Мне нужна помощь')
     button2 = types.KeyboardButton('Мой рейтинг')
     button3 = types.KeyboardButton('Мой баланс')
     button4 = types.KeyboardButton('Пополнить счёт')
     button5 = types.KeyboardButton('Назад')
     keyboard.add(button, button1)
+    if user['verified_psychologist'] is True:
+        keyboard.add(about_me_button)
     keyboard.add(button2, button3)
     keyboard.add(button4)
     keyboard.add(button5)

@@ -10,7 +10,8 @@ headers = {
         }
 
 def send_bill_api_qiwi(billid, coast, user_id):
-    time_bill = datetime.now().astimezone().replace(microsecond=0) + timedelta(hours=1)
+    time_now = datetime.now().astimezone().replace(microsecond=0)
+    time_bill = time_now + timedelta(hours=1)
     time_bill = time_bill.isoformat()
     
 
@@ -31,7 +32,7 @@ def send_bill_api_qiwi(billid, coast, user_id):
                     headers=headers,
                     data=params,
                     )
-    return (res.json(), time_bill)
+    return (res.json(), time_now)
 
 def reject_bill_api_qiwi(billid):
     params = {}
