@@ -7,8 +7,8 @@ from webhook_settings import *
 
 
 if __name__ == '__main__':
-    logger = telebot.logger
-    telebot.logger.setLevel(logging.INFO)
+    # logger = telebot.logger
+    # telebot.logger.setLevel(logging.INFO)
     bot.remove_webhook()
     time.sleep(2)
     bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,

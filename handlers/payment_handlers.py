@@ -4,18 +4,22 @@ from utils import generate_alphanum_random_string
 from qiwi import send_bill_api_qiwi, reject_bill_api_qiwi, check_bill_api_qiwi
 from keyboard import *
 import telebot 
+from datetime import datetime, timedelta
+from statistics import mean
+##########################################################
 
-@bot.message_handler(regexp='^(Тест)$')
-def testing(message):
-    user = db.get_user_by_id(message.chat.id)
-    db.db.users.update_one({'user_id': message.chat.id}, {'$push': {'history_payment': user['history_payment'][0]}}) 
-
+########################################################################
+ 
 @bot.message_handler(commands=['balance'])
-@bot.message_handler(regexp="^(Пополнить счёт)$")
+@bot.message_handler(regexp="(^Пополнить счёт($|\s💳))")
 def start_qiwi_order(message):
-    return bot.send_message(message.chat.id, text='Выберите сумму пополнения:', reply_markup=choise_sum_qiwi())
+    try:
+        return bot.send_message(message.chat.id, text='Выберите сумму пополнения:', reply_markup=choise_sum_qiwi())
+    except Exception as e:
+        print(e)
 
-@bot.message_handler(regexp="^(Мой баланс)$")
+@bot.message_handler(commands=['my_balance'])
+@bot.message_handler(regexp="(^Мой баланс($|\s💰))")
 def my_balance(message):
     user = db.get_user_by_id(message.chat.id)
     text = f'На вашем счету --- {user["balance"]} руб.'
@@ -27,6 +31,8 @@ def my_balance(message):
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'history_balance')
 def history_balance(call):
     try:
+        if call.data.split('~')[1] == 'close':
+            return bot.delete_message(call.message.chat.id, call.message.message_id)
         bot.delete_message(call.message.chat.id, call.message.message_id)
         user = db.get_user_by_id(call.message.chat.id)
         history_payment = user['history_payment']
@@ -58,6 +64,7 @@ def create_qiwi_order(call):
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         user = db.get_user_by_id(call.message.chat.id)
+        if call.data.split('~')[1] == 'cancel':    return
         if user['companion_id']:
             try:
                 bot.send_message(call.message.chat.id, text='В режиме пополнения баланса, невозможно вести диалог с собеседником, все что будет написано до момента оплаты или отмены платежа собеседник не увидит')
@@ -66,9 +73,8 @@ def create_qiwi_order(call):
                 pass
                 
         coast = call.data.split('~')[1]
-        if coast == 'cancel':
-            return
-        coast = int(2)
+        
+        coast = int(coast)
         billid = generate_alphanum_random_string(6)
         bill_data = send_bill_api_qiwi(billid, coast, call.message.chat.id)
         bill_date = bill_data[1]
@@ -91,10 +97,13 @@ def get_qiwi_order(message):
     payment = user['temp_payment']
     if payment is None:
         bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-        keyboard = main_keyboard()
-        if user['companion_id']:
-            keyboard = control_companion()
-        return bot.send_message(text='Ваш заказ был удалён.', reply_markup=keyboard)
+        # keyboard = main_keyboard()
+        # if user['companion_id']:
+        #     keyboard = control_companion()
+        #     companion_user = db.get_user_by_id(user["companion_id"])
+        #     if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
+        #         keyboard = control_companion_verif()
+        return bot.send_message(text='Ваш заказ был удалён.')
     text = f'К оплате {payment["coast"]} рублей + 2% комиссии QIWI.\n\n' \
            f'Оплата по ссылке: {payment["pay_url"]}\n\n' \
            f'После оплаты нажмите кнопку "Проверить платёж"\n\n' \
@@ -118,11 +127,15 @@ def reject_bill_qiwi(call):
             user = db.get_user_by_id(call.message.chat.id)
             payment = user['temp_payment']
             reject_bill_api_qiwi(payment['billid'])
-            db.delete_temp_payment(call.message.chat.id)
-            keyboard = main_keyboard()
-            if user['companion_id']:
-                keyboard = control_companion()
-            bot.send_message(call.message.chat.id, text='Ваш платёж был отменён.', reply_markup=keyboard)
+            # db.delete_temp_payment(call.message.chat.id)
+            db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
+            # keyboard = main_keyboard()
+            # if user['companion_id']:
+            #     keyboard = control_companion()
+            #     companion_user = db.get_user_by_id(user["companion_id"])
+            #     if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
+            #         keyboard = control_companion_verif()
+            bot.send_message(call.message.chat.id, text='Ваш платёж был отменён.')
     except Exception as e:
         print(e)
 
@@ -133,14 +146,21 @@ def check_bill_qiwi(call):
         user = db.get_user_by_id(call.message.chat.id)
         payment = user['temp_payment']
         answer = check_bill_api_qiwi(payment['billid'])
+        companion = None
+        if user['companion_id']:
+            companion = db.get_user_by_id(user['companion_id'])
         text = ''
         if answer['status']['value'] == 'EXPIRED':
-            db.delete_temp_payment(call.message.chat.id)
+            # db.delete_temp_payment(call.message.chat.id)
+            db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
             bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-            keyboard = main_keyboard()
-            if user['companion_id']:
-                keyboard = control_companion()
-            return bot.send_message(text='Ваша заявка на пополнение счёта удалена из за истечения времени ссылки', reply_markup=keyboard)
+            # keyboard = main_keyboard()
+            # if companion:
+            #     keyboard = control_companion()
+            #     if companion['helper'] is True and companion['verified_psychologist'] is True:
+            #         keyboard = control_companion_verif()
+                
+            return bot.send_message(text='Ваша заявка на пополнение счёта удалена из за истечения времени ссылки')
         elif answer['status']['value'] == 'WAITING':
             text = f'Счёт не оплачен, если вы только что оплатили, подождите 1 минуту и попробуйте провермть платёж снова \n\n\n' \
             f'К оплате {payment["coast"]} рублей + 2% комиссии QIWI.\n\n' \
@@ -151,16 +171,21 @@ def check_bill_qiwi(call):
             message = bot.send_message(call.message.chat.id, text, reply_markup=order_keyboard()) 
             return bot.register_next_step_handler(message, get_qiwi_order)
         elif answer['status']['value'] == 'PAID':
-            db.push_paid_payment(call.message.chat.id, payment)
-            db.inc_balance(call.message.chat.id, payment['coast'])
+            # db.push_paid_payment(call.message.chat.id, payment)
+            db.push_value(user_id=call.message.chat.id, key='history_payment', value=payment)
+            # db.inc_balance(call.message.chat.id, payment['coast'])
+            db.inc_value(user_id=call.message.chat.id, key='balance', value=payment['coast'])
             user = db.get_user_by_id(call.message.chat.id)
-            db.delete_temp_payment(call.message.chat.id)
+            # db.delete_temp_payment(call.message.chat.id)
+            db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
             bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
             text = f'Ваш счёт был успешно оплачен, на ваш баланс зачисленно {payment["coast"]} рублей.\n\nВаш баланс - {user["balance"]} рублей.'
-            keyboard = main_keyboard()
-            if user['companion_id']:
-                keyboard = control_companion()
-            bot.send_message(call.message.chat.id, text, reply_markup=keyboard)
+            # keyboard = main_keyboard()
+            # if companion['companion_id']:
+            #     keyboard = control_companion()
+            #     if companion['helper'] is True and companion['verified_psychologist'] is True:
+            #         keyboard = control_companion_verif()
+            bot.send_message(call.message.chat.id, text)
     except Exception as e:
         print(e)
 

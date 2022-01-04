@@ -1,8 +1,12 @@
-from handlers.handlers import bot
+from handlers.handlers import bot, check_premium_dialog
 from database import db
 from pathlib import Path
 import os
 import telebot
+from datetime import datetime, timedelta
+from keyboard import *
+
+
 
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'voice', 'sticker', 'video', 'video_note'])
 def chat(message):
@@ -10,6 +14,8 @@ def chat(message):
     user = db.get_or_create_user(message.chat)
     db.update_last_action_date(message.chat.id)
     if not user['companion_id']:    return
+    companion = db.get_user_by_id(user['companion_id'])
+    check_premium_dialog(user)  # Прогоняем сообщение по функции проверки платного диалога, костыль, хз как по другому сделать
     db.update_count_message_dialog_time(message.chat.id)
     try:
         if message.text:

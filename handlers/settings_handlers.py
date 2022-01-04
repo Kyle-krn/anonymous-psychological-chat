@@ -1,9 +1,10 @@
 from handlers.handlers import bot, system_message_filter, blocked_filter
 from database import db
 from keyboard import *
+from datetime import datetime
 
 
-@bot.message_handler(regexp="^(Настройки)$")
+@bot.message_handler(regexp="(^Настройки($|\s⚙))")
 def settings_user(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return
@@ -12,7 +13,7 @@ def settings_user(message):
     return bot.send_message(chat_id=message.chat.id, text='Выберите свою роль', reply_markup=settings_keyboard(user))
 
 
-@bot.message_handler(regexp="^(Я хочу помочь)$")
+@bot.message_handler(regexp="(^Я хочу помочь($|\s👩‍⚕️))")
 def i_want_help(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return
@@ -24,7 +25,7 @@ def i_want_help(message):
     if user['verified_psychologist'] is False:
         bot.send_message(chat_id=message.chat.id, text='Вы дипломированный психолог? Верифицируйте аккаунт', reply_markup=verification_keyboard())
     elif user['verified_psychologist'] == 'under_consideration':
-        bot.send_message(chat_id=message.chat.id, text='Ваша заявка на верификацию находтся на рассмотрении.')
+        bot.send_message(chat_id=message.chat.id, text='Ваша заявка на верификацию находится на рассмотрении.')
     elif user['verified_psychologist'] is True:
         bot.send_message(chat_id=message.chat.id, text='Ваш аккаунт верифицирован. Сделать поиск только по собеседникам у которых на балансе есть средства? (По умолчанию, поиск по всем)', reply_markup=yes_no_keyboard('i_want_help'))
 
@@ -36,9 +37,12 @@ def i_want_help_callback(call):
         bot.send_message(chat_id=call.message.chat.id, text='Выбран поиск только по собеседникам у которых есть средства на балансе.')
     else:
         bot.send_message(chat_id=call.message.chat.id, text='Выбран поиск по всем.')
+    user = db.get_user_by_id(call.message.chat.id)
+    if user['about_me']['price'] == 0:
+        bot.send_message(chat_id=call.message.chat.id, text='Заполните данные, для предоставления платных услуг.', reply_markup=about_me_keyboard())
 
 
-@bot.message_handler(regexp="^(Мне нужна помощь)$")
+@bot.message_handler(regexp="(^Мне нужна помощь($|\s💆‍♂️))")
 def i_need_help(message):
     try:
         if system_message_filter(message):  return
@@ -70,7 +74,7 @@ def i_need_help_callback(call):
         text += 'Поиск по всем'
     return bot.send_message(chat_id=call.message.chat.id, text=text, reply_markup=main_keyboard())
 
-@bot.message_handler(regexp="^(Мой рейтинг)$")
+@bot.message_handler(regexp="(^Мой рейтинг($|\s📈))")
 def my_rating(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return
@@ -79,15 +83,15 @@ def my_rating(message):
     return bot.send_message(chat_id=message.chat.id, text=f'Ваш рейтинг: {user["rating"]}.')
 
 
-@bot.message_handler(regexp="^(Служба поддержки)$")
+@bot.message_handler(regexp="(^Служба поддержки($|\s🗣))")
 def support_handler(message):
     if system_message_filter(message):  return
     db.update_last_action_date(message.chat.id)
-    bot.send_message(chat_id=message.chat.id, text="Если вы столкнулись с проблемой или ошибкой в боте, дайте нам знать.\nВы можете обратиться к нашей службе поддержки: @kyle_krn",
+    bot.send_message(chat_id=message.chat.id, text="Если вы столкнулись с проблемой или ошибкой в боте, дайте нам знать.\nВы можете обратиться к нашей службе поддержки: @TechSupportVeles",
                      reply_markup=support_keyboard())
 
 
-@bot.message_handler(regexp="^(Назад)$")
+@bot.message_handler(regexp="(^Назад($|\s🔙))")
 def back_handler(message):
     if system_message_filter(message):  return
     if blocked_filter(message):    return

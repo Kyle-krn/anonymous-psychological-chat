@@ -50,8 +50,15 @@ class DBclient:
                                 'output_finish': 0,                         # Сколько раз с пользователем заверешили диалог
                                 'input_finish': 0,                          # Сколько раз пользователь завершал диалог
                              },
-                'dialog_time': [],                       # Массив со статистикой диалогов
-                
+                'dialog_time': [            # Пример пуша в dialog_time
+                                    # {
+                                    #     'start': str(datetime.now().isoformat(' ', 'seconds')),
+                                    #     'end': str(datetime.now().isoformat(' ', 'seconds')),
+                                    #     'delta': datetime.now() - datetime.strptime(last_date['start'], "%Y-%m-%d %H:%M:%S"),
+                                    #     'count_message': 0
+                                    # }
+                                ],                       # Массив со статистикой диалогов
+                                
                 
                 'temp_payment': None,
                 'balance': 0,
@@ -61,7 +68,19 @@ class DBclient:
                     'name': '',
                     'about': ''
                 },
-                'premium_search': False
+                'premium_search': False,
+                'time_start_premium_dialog': None,
+                'premium_rating': [],
+                'data_premium_rating_companion': [],
+                'premium_dialog_time': [
+                                            # {
+                                            #     'start':
+                                            #     'end':
+                                            #     'delta':
+                                            #     'psy':
+                                            #     'patient':
+                                            # }
+                                        ]
             }
             self.db.users.insert_one(user)
         return user
@@ -79,10 +98,19 @@ class DBclient:
         data = self.db.users.find_one({"user_id": user_id, 'data_rating_companion.message_id': message_id}, {'data_rating_companion.$': 1})
         data = data['data_rating_companion'][0]
         return data
+
+    def get_data_premium_rating_companion(self, user_id, message_id):
+        '''Вытаскивает инфу о сообщениях рейтинга'''
+        data = self.db.users.find_one({"user_id": user_id, 'data_premium_rating_companion.message_id': message_id}, {'data_premium_rating_companion.$': 1})
+        data = data['data_premium_rating_companion'][0]
+        return data
     
     def delete_data_rating_companion(self, user_id, message_id):
         '''Удаляет инфу о сообщениях рейтинга'''
         self.db.users.update_one({"user_id": user_id}, {'$pull': {'data_rating_companion': {'message_id': message_id}}})
+
+    def delete_data_premium_rating_companion(self, user_id, message_id):
+        self.db.users.update_one({"user_id": user_id}, {'$pull': {'data_premium_rating_companion': {'message_id': message_id}}})
 
     def inc_rating(self, user_id, count):
         '''Изменяет рейтинг'''
@@ -134,23 +162,24 @@ class DBclient:
     def next_companion(self, user_id):
         '''Поиск следующего собесендика'''
         user = self.get_user_by_id(user_id)
-        self.db.users.update_one({'user_id': user['user_id']}, {'$set': {'last_companion_id': user['companion_id']}})
+        self.db.users.update_one({'user_id': user['user_id']}, {'$set': {'last_companion_id': user['companion_id'], 'companion_id': None}})
         self.db.users.update_one({'user_id': user['companion_id']}, {'$set': {'last_companion_id': user['user_id'], 'search_companion': False, 'companion_id': None}})
     
     def update_last_action_date(self, user_id):
         '''Обнавляет дату и время последнего действия'''
         self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': datetime.now().replace(microsecond=0)}})
 
-    def update_statistic_inc(self, user_id, value):
-        '''Прибавляет счетчик'''
-        self.db.users.update_one({'user_id': user_id}, {'$inc': {f'statistic.{value}' : 1}})
+    # def update_statistic_inc(self, user_id, value):
+    #     '''Прибавляет счетчик'''
+    #     self.db.users.update_one({'user_id': user_id}, {'$inc': {f'statistic.{value}' : 1}})
 
-    def update_verifed_psychologist(self, user_id, value):
-        '''Изменяет верификацию психолога'''
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
+    # def update_verifed_psychologist(self, user_id, value):
+    #     '''Изменяет верификацию психолога'''
+    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
     
     def push_date_in_start_dialog_time(self, user_id):
         '''Добавляет в массив дату и время начала диалога'''
+
         time_dict = {
             'start': str(datetime.now().isoformat(' ', 'seconds')),
             'end': None,
@@ -177,13 +206,13 @@ class DBclient:
         self.db.users.update_one({'user_id': user_id}, {'$pull': {'dialog_time': clear_last_date}})
         self.db.users.update_one({'user_id': user_id}, {'$push': {'dialog_time': last_date}})
 
-    def blocked_user(self, user_id, value):
-        '''Блокирует/разблокирует юзера'''
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'blocked': value}})
+    # def blocked_user(self, user_id, value):
+    #     '''Блокирует/разблокирует юзера'''
+    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'blocked': value}})
 
     def set_temp_payment(self, user_id, coast, billid, date, pay_url):
         data = {
-            'status': 'replenishment',
+            'status': 'consumption',
             'date': date,
             'billid': billid,
             'coast': coast,
@@ -191,17 +220,23 @@ class DBclient:
         }
         self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': data}})
 
-    def delete_temp_payment(self, user_id):
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': None}})
+    # def delete_temp_payment(self, user_id):
+    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': None}})
         
-    def push_paid_payment(self, user_id, payment):
-        self.db.users.update_one({'user_id': user_id}, {'$push': {'history_payment': payment}})
+    # def push_paid_payment(self, user_id, payment):
+    #     self.db.users.update_one({'user_id': user_id}, {'$push': {'history_payment': payment}})
+ 
 
-    def inc_balance(self, user_id, value):
-        self.db.users.update_one({'user_id': user_id}, {'$inc': {'balance': value}})
+    # def inc_balance(self, user_id, value):
+    #     self.db.users.update_one({'user_id': user_id}, {'$inc': {'balance': value}})
 
     def set_value(self, user_id, key, value):
         self.db.users.update_one({'user_id': user_id}, {'$set': {key: value}})
 
+    def inc_value(self, user_id, key, value):
+        self.db.users.update_one({'user_id': user_id}, {'$inc': {key: value}})
+
+    def push_value(self, user_id, key, value):
+        self.db.users.update_one({'user_id': user_id}, {'$push': {key: value}})
 db = DBclient()
 

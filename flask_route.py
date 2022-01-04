@@ -199,13 +199,15 @@ def user_verif(user_id):
         return redirect(url_for('login'))
     if 'reject' in request.form:            # Отклонение верификации
         filepath = f'static/verefication_doc/{user_id}/'
-        db.update_verifed_psychologist(user_id, False)
+        # db.update_verifed_psychologist(user_id, False)
+        db.set_value(user_id=user_id, key='verified_psychologist', value=False)
         if os.path.exists(filepath):
             coment = request.form['reject_coment']
             text = '<u><b>Сообщение от администрации об отклонении верификации:</b></u>\n\n' + (coment or 'Ваши документы отклоненны по неуказаной причине')
             shutil.rmtree(filepath)
     if 'confirm' in request.form:           # Подтверждение верификации
-        db.update_verifed_psychologist(user_id, True)
+        # db.update_verifed_psychologist(user_id, True)
+        db.set_value(user_id=user_id, key='verified_psychologist', value=True)
         text = '<u><b>Ваша заявка о верификации одобрена</b></u>\n\n'
     message = bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
     return redirect(url_for('user_view', user_id=user_id))
@@ -232,17 +234,20 @@ def blocked_user(user_id):
     user = db.get_user_by_id(user_id)
     if user['companion_id']:            # Если у пользователя есть собесендик, завершаем диалог с ним
         db.push_date_in_end_dialog_time(user_id) # Записываем дату и время конца диалога
-        db.update_statistic_inc(user_id, 'output_finish')
+        # db.update_statistic_inc(user_id, 'output_finish')
+        db.inc_value(user_id=user_id, key='statistic.output_finish', value=1)
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
-        db.update_statistic_inc(user['companion_id'], 'input_finish')
+        # db.update_statistic_inc(user['companion_id'], 'input_finish')
+        db.inc_value(user_id=user['companion_id'], key='statistic.input_finish', value=1)
         db.cancel_search(user_id)
     text = '<u><b>Сообщение от администрации о блокировке:</b></u>\n\n' +  request.form['text'] 
     try:  
         bot.send_message(chat_id=user_id, text=text, reply_markup=block_keyboard(), parse_mode='HTML')
     except telebot.apihelper.ApiTelegramException:
         print('chat_not_found')
-    db.blocked_user(user_id, True)
+    # db.blocked_user(user_id, True)
+    db.set_value(user_id=user_id, key='blocked', value=True)
     return redirect(url_for('user_view', user_id=user_id))
 
 
@@ -256,7 +261,8 @@ def unblocked_user(user_id):
         bot.send_message(chat_id=user_id, text=text, reply_markup=main_keyboard(), parse_mode='HTML')
     except telebot.apihelper.ApiTelegramException:
         print('chat_not_found')
-    db.blocked_user(user_id, False)
+    # db.blocked_user(user_id, False)
+    db.set_value(user_id=user_id, key='blocked', value=False)
     return redirect(url_for('user_view', user_id=user_id))
 
 

@@ -1,7 +1,7 @@
 import requests
 import json
 from datetime import datetime, timedelta
-from settings import QIWI_PRIVATE_KEY
+from settings import QIWI_PRIVATE_KEY, QIWI_TOKEN
 
 headers = {
         'Authorization': f'Bearer {QIWI_PRIVATE_KEY}',
@@ -45,3 +45,13 @@ def check_bill_api_qiwi(billid):
     url = f'https://api.qiwi.com/partner/bill/v1/bills/{billid}'
     res = requests.get(url,headers=headers)
     return res.json()
+
+
+def transfer_qiwi_money():
+    headers = {
+        'Authorization': f'Bearer {QIWI_TOKEN}',
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+        }
+    url = 'https://edge.qiwi.com/sinap/api/v2/terms/21013/payments'
+    
