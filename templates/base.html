@@ -29,8 +29,15 @@
         <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
           <li><a href="{{url_for('index')}}" class="nav-link px-2 text-white">Список юзеров</a></li>
           <li><a href="{{url_for('bulk_handler')}}" class="nav-link px-2 text-white">Массовая рассылка</a></li>
-          <li><a class="btn btn-primary" href="/?username=&category=&verification=under_consideration&sort=&search_companion_params=" role="button">На рассмотрении<span class="badge bg-success">{{verification_count}}</span></a></li>
-        </ul>
+          <li><a href="/?complaint=true" class="nav-link px-2 text-white">Новые жалобы <span class="badge bg-success">{{complaint_count}}</span></a></li>
+          <li><a href="/?shadowing=true" class="nav-link px-2 text-white">Прослушка<span class="badge bg-success">{{shadowing_count}}</span></a></li>
+          <li><a href="/?username=&category=&verification=under_consideration&sort=&search_companion_params=" class="nav-link px-2 text-white">На рассмотрении <span class="badge bg-success">{{verification_count}}</span></a></li>
+          <li><a href="{{url_for('transfer_money_view')}}" class="nav-link px-2 text-white"> Выплаты <span class="badge bg-success">{{transfer_money_count}}</span></a></li>
+          <li><a href="{{url_for('get_money_view')}}" class="nav-link px-2 text-white"> Пополнения</a></li>
+          </ul>
+        
+
+        
 
 
         <div class="text-end">

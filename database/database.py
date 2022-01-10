@@ -10,8 +10,8 @@ from utils import delete_microseconds
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        # self.db = self.client['anonymous_chat']
-        self.db = self.client['chat']
+        self.db = self.client['anonymous_chat']
+        # self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -60,19 +60,73 @@ class DBclient:
                                 ],                       # Массив со статистикой диалогов
                                 
                 
-                'temp_payment': None,
-                'balance': 0,
-                'history_payment': [],
-                'about_me': {
-                    'price': 0,
-                    'name': '',
-                    'about': ''
+                'temp_payment': None,           # Здесь хранится данные о текущей оплате
+                                                # {
+                                                #    'user_id': call.message.chat.id,
+                                                #     'status': 'replenishment',
+                                                #     'date': bill_date,
+                                                #     'billid': billid,
+                                                #     'coast_with_commission': coast_with_commission,
+                                                #     'coast': coast,
+                                                #     'pay_url': bill['payUrl']
+                                                # }
+
+                'temp_transfer_money': None,    # Данные о выводе средств       
+                                                # {
+                                                    # 'user_id': message.chat.id,
+                                                    # 'amount_of_money': money,
+                                                    # 'qiwi_account': qiwi_account,
+                                                    # 'date': datetime.utcnow().replace(microsecond=0)
+                                                # }
+
+                'balance': 0,                   # Денежный счёт пользователя
+                'history_payment': [          # История пополнений, выводов, переводов и тд           # status: consumption (Расход), replenishment(Пополнение),  (Доход)
+
+                                    #    {  ---------- Пополнение баланса
+                                    #    'user_id': call.message.chat.id,
+                                    #     'status': 'replenishment',
+                                    #     'date': bill_date,
+                                    #     'billid': billid,
+                                    #     'coast_with_commission': coast_with_commission,
+                                    #     'coast': coast,
+                                    #     'pay_url': bill['payUrl']
+                                    #    }      
+
+                                    # {   ----------- Вывод средств
+                                    #     'user_id': message.chat.id,
+                                    #     'status': 'transfer_money',
+                                    #     'coast': money,
+                                    #     'qiwi_account': qiwi_account,
+                                    #     'date': datetime.utcnow().replace(microsecond=0)
+                                    # }
+
+                                    # {   ----------- Потрачено
+                                    #     'status': 'consumption',
+                                    #     'date': date,
+                                    #     'from': user['user_id'],
+                                    #     'coast': price,
+                                    #     'for': companion_user['user_id']
+                                    # }
+
+                                    # {   ----------- Заработано
+                                    #     'status': 'income',
+                                    #     'date': date,
+                                    #     'from': user['user_id'],
+                                    #     'coast': price,
+                                    #     'for': companion_user['user_id']
+                                    # }
+
+                                    ],
+                'about_me': {                   # О психологе
+                    'price': 0,                 # Цена
+                    'name': '',                 # Имя
+                    'about': ''                 # О себе
                 },
-                'premium_search': False,
-                'time_start_premium_dialog': None,
-                'premium_rating': [],
-                'data_premium_rating_companion': [],
-                'premium_dialog_time': [
+                'premium_search': False,        # Премиум поиск - (для кат. "Мне нужна помощь - Поиск только вериф. психологов", для психологов - Поиск пациентов с не 0ым балансом)
+                'time_start_premium_dialog': None,          # Если платный чат есть, здесь данные о старте диалога, если None - платного чата нет
+                'premium_rating': [],                       # Отзывы и баллы для псхиологов
+                'data_premium_rating_companion': [],        # Данные что бы отзыв и балл достался определенному психологу
+                'premium_dialog_time': [                    # Данные о премиум диалогах
                                             # {
                                             #     'start':
                                             #     'end':
@@ -80,7 +134,11 @@ class DBclient:
                                             #     'psy':
                                             #     'patient':
                                             # }
-                                        ]
+                                        ],
+                'complaint': [],                         # Жалобы
+                
+                'admin_shadowing': False,                # Режим слежки от админа (используется для юзеров с жалобами)
+                'temp_message': [],                       # Последние 100 сообщений
             }
             self.db.users.insert_one(user)
         return user
@@ -168,14 +226,6 @@ class DBclient:
     def update_last_action_date(self, user_id):
         '''Обнавляет дату и время последнего действия'''
         self.db.users.update_one({'user_id': user_id}, {'$set': {'statistic.last_action_date': datetime.now().replace(microsecond=0)}})
-
-    # def update_statistic_inc(self, user_id, value):
-    #     '''Прибавляет счетчик'''
-    #     self.db.users.update_one({'user_id': user_id}, {'$inc': {f'statistic.{value}' : 1}})
-
-    # def update_verifed_psychologist(self, user_id, value):
-    #     '''Изменяет верификацию психолога'''
-    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'verified_psychologist': value}})
     
     def push_date_in_start_dialog_time(self, user_id):
         '''Добавляет в массив дату и время начала диалога'''
@@ -206,30 +256,6 @@ class DBclient:
         self.db.users.update_one({'user_id': user_id}, {'$pull': {'dialog_time': clear_last_date}})
         self.db.users.update_one({'user_id': user_id}, {'$push': {'dialog_time': last_date}})
 
-    # def blocked_user(self, user_id, value):
-    #     '''Блокирует/разблокирует юзера'''
-    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'blocked': value}})
-
-    def set_temp_payment(self, user_id, coast, billid, date, pay_url):
-        data = {
-            'status': 'consumption',
-            'date': date,
-            'billid': billid,
-            'coast': coast,
-            'pay_url': pay_url
-        }
-        self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': data}})
-
-    # def delete_temp_payment(self, user_id):
-    #     self.db.users.update_one({'user_id': user_id}, {'$set': {'temp_payment': None}})
-        
-    # def push_paid_payment(self, user_id, payment):
-    #     self.db.users.update_one({'user_id': user_id}, {'$push': {'history_payment': payment}})
- 
-
-    # def inc_balance(self, user_id, value):
-    #     self.db.users.update_one({'user_id': user_id}, {'$inc': {'balance': value}})
-
     def set_value(self, user_id, key, value):
         self.db.users.update_one({'user_id': user_id}, {'$set': {key: value}})
 
@@ -238,5 +264,19 @@ class DBclient:
 
     def push_value(self, user_id, key, value):
         self.db.users.update_one({'user_id': user_id}, {'$push': {key: value}})
+
+    def push_shadowing_message(self, message):
+        '''Добавляет или хранит в массиве только последние 100 сообщений пользователя с плохим рейтингом'''
+        user = db.get_user_by_id(message.chat.id)
+        temp_message = user['temp_message']
+        print(temp_message)
+        if len(temp_message) <= 100:
+            db.push_value(user_id=user['user_id'], key='temp_message', value=(message.text or message.caption))
+        else:
+            temp_message.append((message.text or message.caption))
+            temp_message = temp_message[1:]
+            db.set_value(user_id=user['user_id'], key='temp_message', value=temp_message)
+        
+
 db = DBclient()
 

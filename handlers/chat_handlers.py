@@ -6,8 +6,7 @@ import telebot
 from datetime import datetime, timedelta
 from keyboard import *
 
-
-
+        
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'voice', 'sticker', 'video', 'video_note'])
 def chat(message):
     '''Хендлер чата, если пользователь отправляет сообщение и у него есть собесденик, это сообщение пересылается собеседнику'''
@@ -15,6 +14,10 @@ def chat(message):
     db.update_last_action_date(message.chat.id)
     if not user['companion_id']:    return
     companion = db.get_user_by_id(user['companion_id'])
+
+    if user['rating'] <= -15 or user['admin_shadowing'] is True:
+        db.push_shadowing_message(message)
+    
     check_premium_dialog(user)  # Прогоняем сообщение по функции проверки платного диалога, костыль, хз как по другому сделать
     db.update_count_message_dialog_time(message.chat.id)
     try:

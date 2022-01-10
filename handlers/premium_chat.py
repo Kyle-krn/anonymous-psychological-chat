@@ -7,19 +7,24 @@ from statistics import mean
  
 @bot.message_handler(regexp='(^Начать консультацию($|\s📒))')
 def confirm_premium_chat(message):
+    '''Начало платного диалога (подтверждающее сообщение)'''
     user = db.get_user_by_id(message.chat.id)
     if blocked_filter(message):    return
     if not user['companion_id']:    return
+    if user['time_start_premium_dialog']:
+        return bot.send_message(chat_id=message.chat.id, text='<b>Вы уже находитесь на платной консультации.</b>', parse_mode='HTML')
     companion_user = db.get_user_by_id(user['companion_id'])
     if companion_user['helper'] is not True:    return
     if companion_user['verified_psychologist'] is not True:    return
-    text = f'Цена за 1 час консультации --> {companion_user["about_me"]["price"]} рублей\n' \
+    text = f'<b>Цена за 1 час консультации: {companion_user["about_me"]["price"]} руб.\n' \
             'Вы уверены что хотите оплатить этот час?\n' \
-            'После оплаты психолог не сможет в течении часа пропустить этот чат, это можете сделать только вы.'
-    bot.send_message(message.chat.id, text=text, reply_markup=yes_no_keyboard('start_premium_chat'))
+            'После оплаты психолог не сможет в течении часа пропустить этот чат, это можете сделать только вы.</b>'
+    bot.send_message(message.chat.id, text=text, reply_markup=yes_no_keyboard('start_premium_chat'), parse_mode='HTML')
+
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'start_premium_chat')
 def start_premium_chat(call):
+    '''Начало платного диалога'''
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         if call.data.split('~')[1] == 'yes':
@@ -27,10 +32,10 @@ def start_premium_chat(call):
             companion_user = db.get_user_by_id(user['companion_id'])
             price = companion_user["about_me"]["price"]
             if price > user['balance']:
-                text = f'Стоимость 1 часа консультации {price} рублей.\n' \
-                    f'Ваш баланс {user["balance"]} рубля.\n' \
-                    f'Недостаточно средств для начала консультации, вы можете пополнить баланс прямо из диалога.' 
-                return bot.send_message(chat_id=call.message.chat.id, text=text, reply_markup=choise_sum_qiwi(price-user['balance']))
+                text = f'<b>Цена за 1 час консультации: {price} руб.\n' \
+                        f'Ваш баланс: {user["balance"]} руб.\n' \
+                        f'Недостаточно средств для начала консультации, вы можете пополнить баланс прямо из диалога.</b>' 
+                return bot.send_message(chat_id=call.message.chat.id, text=text, reply_markup=choise_sum_qiwi(price-user['balance']), parse_mode='HTML')
             date =  datetime.utcnow().replace(microsecond=0)
             data = {
                 'status': 'consumption',
@@ -40,14 +45,14 @@ def start_premium_chat(call):
                 'for': companion_user['user_id']
             }
             
-            db.inc_value(user_id=call.message.chat.id, key='balance', value=-price)
-            db.push_value(user_id=call.message.chat.id, key='history_payment', value=data)
-            db.set_value(user_id=call.message.chat.id, key='time_start_premium_dialog', value=date)
+            db.inc_value(user_id=call.message.chat.id, key='balance', value=-price)         # Уменьшаем баланс
+            db.push_value(user_id=call.message.chat.id, key='history_payment', value=data)  # Пушим в историю баланса
+            db.set_value(user_id=call.message.chat.id, key='time_start_premium_dialog', value=date) # Ставим платный диалог
             data['status'] = 'income'
             db.inc_value(user_id=companion_user["user_id"], key='balance', value=price)
             db.push_value(user_id=companion_user["user_id"], key='history_payment', value=data)
             db.set_value(user_id=companion_user["user_id"], key='time_start_premium_dialog', value=date)
-            user = db.get_user_by_id(call.message.chat.id)
+            user = db.get_user_by_id(call.message.chat.id)              # Достаем юзеров для того что бы изменился "balance"
             companion_user = db.get_user_by_id(user['companion_id'])
             bot.send_message(chat_id=user['user_id'], text=f'Вы успешно оплатили 1 час консультации, на вашем балансе {user["balance"]} рублей.\n В течении 1го часа психолог не сможет пропустить диалог, но это можете вы.', reply_markup=control_companion())
             bot.send_message(chat_id=companion_user['user_id'], text=f'Собеседник успешно оплатил 1 час консультации, на вашем балансе {companion_user["balance"]} рублей.\n В течении 1го часа Вы не можете пропустить диалог, но это может сделать ваш собеседник.')
@@ -56,6 +61,7 @@ def start_premium_chat(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'premium_rating')
 def premium_rating_handler(call):
+    '''После выставления оценки психолога дает возможность оставить текстовый отзыв'''
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         rating_data = db.get_data_premium_rating_companion(call.message.chat.id, call.message.message_id)
@@ -69,24 +75,15 @@ def premium_rating_handler(call):
         print(e)
 
 
-@bot.message_handler(commands=['companion_premium_rating'])
-def view_command_premium_rating(message):
-    '''По команде отправляет рейтинг и отзывы, если его собеседник вериф. психолог'''
-    user = db.get_user_by_id(message.chat.id)
-    if not user['companion_id']:    return
-    companion_user = db.get_user_by_id(user['companion_id'])
-    if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
-        send_view_premium_rating(companion_user)
-
-
 def review_psy(message, rating, review_for):
+    '''Принимает отзыв'''
     try:
         if message.text:
             review = message.text
             data = {
                 'rating': rating,
                 'review': review,
-                'datetime': datetime.utcnow(),
+                'datetime': datetime.utcnow().replace(microsecond=0),
                 'from': message.chat.id
             }
             db.push_value(user_id=review_for, key='premium_rating', value=data)
@@ -100,6 +97,7 @@ def review_psy(message, rating, review_for):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'stop_premium_rating')
 def send_rating_without_review(call):
+    '''Завершает оценку психолога без отзыва'''
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         review_for = int(call.data.split('~')[1])
@@ -117,5 +115,21 @@ def send_rating_without_review(call):
         print(e)
 
 
+@bot.message_handler(commands=['companion_premium_rating'])
+def view_command_premium_rating(message):
+    '''По команде отправляет рейтинг и отзывы, если его собеседник вериф. психолог'''
+    user = db.get_user_by_id(message.chat.id)
+    if not user['companion_id']:    return
+    companion_user = db.get_user_by_id(user['companion_id'])
+    if companion_user['helper'] is True and companion_user['verified_psychologist'] is True:
+        send_view_premium_rating(companion_user)
+
+
+@bot.message_handler(regexp='(^Отзывы и оценка психолога($|\s📊))')
+@bot.message_handler(commands=['my_premium_rating'])
+def view_command_my_premium_rating(message):
+    user = db.get_user_by_id(message.chat.id)
+    if user['verified_psychologist'] is not True:    return
+    send_view_premium_rating(user, rating_target='my_self')
 
     

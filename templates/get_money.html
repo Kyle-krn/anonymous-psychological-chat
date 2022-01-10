@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}QIWI{% endblock %}
+{% block body %}
+<div class="container">
+    <br>
+    <div class="text-center">
+        <h3>На счету: {{balance}} руб.</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <tr>
+                    <th><b>Пользователь:</b></th>
+                    <th><b>Сумма оплаты:</b></th>
+                    <th><b>Комиссия:</b></th>
+                    <th><b>Баланс пользователя:</b></th>
+                    <th><b>Дата:</b></th>
+                </tr>
+                
+                    {% for user in users %}
+                    <tr>
+                        {% for payment in user['history_payment'] %}
+                        <td>
+                            <a href="{{ url_for('user_view', user_id=user['user_id']) }}">
+                            {% if user['username'] %}
+                                {{user['username']}}
+                            {% else %}
+                                {{user['user_id']}}
+                            {% endif %}
+                        </a>
+                        </td>
+                        <td>{{payment['coast']}} руб.</td>
+                        <td>{{payment['coast_with_commission'] - payment['coast']}} руб.</td>
+                        <td>{{user['balance']}} руб.</td>
+                        <td>{{payment['date']}}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tr>
+            </table>            
+        </div>
+    </div>
+</div>
+{% endblock %}

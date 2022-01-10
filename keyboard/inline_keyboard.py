@@ -43,6 +43,11 @@ def cancel_next_handlers():
     keyboard.add(button)
     return keyboard
 
+def cancel_next_handlers_verif():
+    keyboard = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton(text='Отмена', callback_data='cancel_veif')
+    keyboard.add(button)
+    return keyboard
 
 def helper_keyboard():
     keyboard = types.InlineKeyboardMarkup()
@@ -151,25 +156,36 @@ def stop_review_keyboard(review_for, rating):
     keyboard.add(types.InlineKeyboardButton(text='Закончить', callback_data=f'stop_premium_rating~{review_for}~{rating}'))
     return keyboard
 
-def start_view_review_keyboard():
+def start_view_review_keyboard(rating_target='companion'):
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(text='Просмотреть отзывы', callback_data=f'view_premium_rating~1'))
+    keyboard.add(types.InlineKeyboardButton(text='Просмотреть отзывы', callback_data=f'view_{rating_target}_premium_rating~1'))
     return keyboard
 
-def view_review_keyboard(page, previous_page, next_page):
+def view_review_keyboard(page, previous_page, next_page, rating_target='companion'):
     keyboard = types.InlineKeyboardMarkup()
-    page_button = types.InlineKeyboardButton(text=f'Страница #{page}', callback_data=f'view_premium_rating~{page}') 
+    page_button = types.InlineKeyboardButton(text=f'Страница #{page}', callback_data=f'view_{rating_target}_premium_rating~{page}') 
     if previous_page and next_page:
-        previous_page = types.InlineKeyboardButton(text='⬅️', callback_data=f'view_premium_rating~{previous_page}')
-        next_page = types.InlineKeyboardButton(text='➡️', callback_data=f'view_premium_rating~{next_page}')
+        previous_page = types.InlineKeyboardButton(text='⬅️', callback_data=f'view_{rating_target}_premium_rating~{previous_page}')
+        next_page = types.InlineKeyboardButton(text='➡️', callback_data=f'view_{rating_target}_companion_premium_rating~{next_page}')
         keyboard.add(previous_page, page_button, next_page)
     elif previous_page:
-        previous_page = types.InlineKeyboardButton(text='⬅️', callback_data=f'view_premium_rating~{previous_page}')
+        previous_page = types.InlineKeyboardButton(text='⬅️', callback_data=f'view_{rating_target}_companion_premium_rating~{previous_page}')
         keyboard.add(previous_page, page_button)
     elif next_page:
-        next_page = types.InlineKeyboardButton(text='➡️', callback_data=f'view_premium_rating~{next_page}')
+        next_page = types.InlineKeyboardButton(text='➡️', callback_data=f'view_{rating_target}_premium_rating~{next_page}')
         keyboard.add(page_button, next_page)
     else:
         keyboard.add(page_button)
-    keyboard.add(types.InlineKeyboardButton(text='❌', callback_data=f'view_premium_rating~close'))
+    keyboard.add(types.InlineKeyboardButton(text='❌', callback_data=f'view_{rating_target}_premium_rating~close'))
+    return keyboard
+
+def complaint_keyboard(companion_id):
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text=f'Да', callback_data=f'complaint~yes~{companion_id}'), 
+                 types.InlineKeyboardButton(text=f'Нет', callback_data=f'complaint~no~None'))
+    return keyboard
+
+def transfer_money_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text=f'Вывести деньги', callback_data=f'transfer_money'))
     return keyboard

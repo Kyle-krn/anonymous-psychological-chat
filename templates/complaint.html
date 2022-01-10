@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container">
+    <br>  
+    <div class="text-center">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('user_view', user_id=user['user_id']) }}"
+                role="button">Назад в профиль</a>
+    <br><br>
+    <form action="{{ url_for('admin_shadowing_post', user_id=user['user_id']) }}" method="post">
+        {% if user['admin_shadowing'] %}
+            <button class="btn btn-outline-success btn-sm" name="false" type="submit" id="button-addon2">Снять прослушку</button>
+        {% else %}
+            <button class="btn btn-outline-success btn-sm" name='true' type="submit" id="button-addon2">Повесить прослушку</button>
+        {% endif %}
+
+    </form>
+    </div>
+    <div class="table-responsive">
+        <table class='table'>
+            <tr>
+                <th>Жалоба</th>
+                <th>Дата</th>
+            </tr>
+        {% for complaint in user['complaint'] %}
+            {% if complaint['check_admin'] %}
+                <tr class='table-success'>
+            {% else %}
+                <tr class='table-danger'>
+            {% endif %}
+                <td>{{complaint['complaint']}}</td>
+                <td>{{complaint['date']}}</td>
+                
+                <td>
+                    {% if not complaint['check_admin'] %}
+                    <form action="{{ url_for('complaint_post', user_id=user['user_id']) }}" method='post'>
+                        <input name="date" type="hidden" value="{{complaint['date']}}">
+                        <button class="btn btn-outline-success btn-sm" type="submit" id="button-addon2"><i class="fas fa-check"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+                
+            </tr>
+        {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

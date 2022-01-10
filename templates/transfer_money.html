@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Вывод средств{% endblock %}
+{% block body %}
+<div class="container">
+    <br>
+    <div class="text-center">
+        <h3>На счету: {{balance}} руб.</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <tr>
+                    <th><b>Пользователь:</b></th>
+                    <th><b>Сумма вывода:</b></th>
+                    <th><b>Баланс пользователя (С вычетом суммы вывода):</b></th>
+                    <th><b>Дата:</b></th>
+                    <th><b>Номер кошелька:</b></th>
+                    <th><b>Вывод:</b></th>
+                </tr>
+                
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('user_view', user_id=user['user_id']) }}">
+                            {% if user['username'] %}
+                                {{user['username']}}
+                            {% else %}
+                                {{user['user_id']}}
+                            {% endif %}
+                        </a>
+                        </td>
+                        <td>{{user['temp_transfer_money']['coast']}} руб.</td>
+                        <td>{{user['balance']}} руб.</td>
+                        <td>{{user['temp_transfer_money']['date']}}</td>
+                        <td>{{user['temp_transfer_money']['qiwi_account']}}</td>
+                        <td>
+                            <form style="display: inline-block;" action="{{ url_for('confirm_transfer_money_post', user_id=user['user_id']) }}" method="POST">
+                                <button type="submit" class="btn btn-outline-success btn-sm"><i class="fas fa-check"></i></button>
+                            </form>
+                            <form style="display: inline-block;" action="{{ url_for('cancel_transfer_money_post', user_id=user['user_id']) }}" method="POST">
+                                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-ban"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                
+            </table>            
+        </div>
+    </div>
+</div>
+{% endblock %}

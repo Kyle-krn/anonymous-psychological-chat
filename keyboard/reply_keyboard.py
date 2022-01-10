@@ -25,6 +25,8 @@ def settings_keyboard(user):
     i_want_help_button = types.KeyboardButton('Я хочу помочь 👩‍⚕️')
     if user['verified_psychologist'] is True:
         about_me_button = types.KeyboardButton('Обо мне 📖')
+        my_premium_rating = types.KeyboardButton('Отзывы и оценка психолога 📊')
+        transfer_money = types.KeyboardButton('Вывод денег 💸')
     i_need_help_button = types.KeyboardButton('Мне нужна помощь 💆‍♂️')
     my_rating = types.KeyboardButton('Мой рейтинг 📈')
     my_balance = types.KeyboardButton('Мой баланс 💰')
@@ -32,7 +34,8 @@ def settings_keyboard(user):
     back_button = types.KeyboardButton('Назад 🔙')
     keyboard.add(i_want_help_button, i_need_help_button)
     if user['verified_psychologist'] is True:
-        keyboard.add(about_me_button)
+        keyboard.add(about_me_button, transfer_money)
+        keyboard.add(my_premium_rating)
     keyboard.add(my_rating, top_up_account_button, my_balance)
     # keyboard.add(top_up_account_button)
     keyboard.add(back_button)

@@ -132,7 +132,7 @@
               Пользователь в поиске
             {% elif u['search_companion'] == False %}
               {% if u['companion_id'] %}
-                В диалоге с <a href="{{ url_for('user_view', user_id=u['companion_id']) }}"><span class='companion_user' id="{{u['companion_id']}}"></span></a>
+                В диалоге с <a href="{{ url_for('user_view', user_id=u['companion_id']) }}">{{get_username_companion(u['companion_id'])}}</a>
               {% else %}
                 Пользователь не в поиске
               {% endif %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class=container>
+    <br>
+    <div class="text-center">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('user_view', user_id=user['user_id']) }}"
+                role="button">Назад в профиль</a>
+    </div>
+<div class="table-responsive">
+<table class="table">
+    <tr>
+        <th scope="col">User</th>
+        <th scope="col">Оценка</th>
+        <th scope="col">Отзыв</th>
+        <th scope="col">Время</th>
+    </tr>
+   {% for review in user['premium_rating'] %}
+    <tr>
+        <td><a href="{{ url_for('user_view', user_id=review['from']) }}">{{get_username_companion(review['from'])}}</td>
+        <!-- <td>{{review['from']}}</td> -->
+        <td>{{review['rating']}}</td>
+        <td>{{review['review']}}</td>
+        <td>{{review['datetime']}}</td>
+    </tr>
+   {% endfor %}
+    </table>
+</div>
+</div>
+{% endblock %}

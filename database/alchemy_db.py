@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, LoginManager
 from settings import app
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask import redirect
 
 sql_db = SQLAlchemy(app)
 
@@ -25,3 +26,7 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(user_id)
+
+@login_manager.unauthorized_handler
+def unauthorized_callback():
+    return redirect('/login')

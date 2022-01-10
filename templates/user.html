@@ -7,7 +7,8 @@
     {% endif %}
 {% endblock %}
 {% block body %}
-<link rel="stylesheet" type="text/css" href="static/css/img.css">
+<!-- <link rel="stylesheet" type="text/css" href="static/css/img.css"> -->
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/img.css') }}">
 <div class=container>
     
     <div class="table-responsive">
@@ -64,6 +65,20 @@
                 <td>На рассмотрении</td>
                 {% endif %}
             </tr>
+            {% if user['verified_psychologist'] == True %}
+            <tr>
+                <td><b>Премиум рейтинг</b></td>
+                <td>
+                {% if user['premium_rating']|length > 0 %}
+                    <a class="btn btn-primary btn-sm" href="{{ url_for('review_view', user_id=user['user_id']) }}"
+                    role="button">Отзывы</a>
+                    {{ computation_premium_rating(user['user_id']) }}/5
+                {% else %}
+                    Нет оценок
+                {% endif %}
+                </td>
+            </tr>
+            {% endif %}
             <tr>
                 <td><b>Собеседник:</b></td>
                 {% if companion %}
@@ -76,6 +91,72 @@
                 </a></td>
                 {% else %}
                 <td>Нет</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <td><b>Баланс:</b></td>
+                <td>{{user['balance']}} руб.</td>
+            </tr>
+            {% if user['temp_transfer_money'] %}
+                <tr>
+                    <td><b>На выводе:</b></td>
+                    <td>{{user['temp_transfer_money']['amount_of_money']}} руб.</td>
+                </tr>
+            {% endif %}
+            <tr>
+                <td><b>Всего средств потрачено в боте:</b></td>
+                <td>{{stat_payment['consumption_total']}} руб.</td>
+            </tr>
+            <tr>
+                <td><b>Всего пополения баланса на сумму</b></td>
+                <td>{{stat_payment['replenishment_total']}} руб.</td>
+            </tr>
+            <tr>
+                <td><b>Всего средств заработано в боте:</b></td>
+                <td>{{stat_payment['income_total']}} руб.</td>
+            </tr>
+            <tr>
+                <td><b>Премиум поиск:</b></td>
+                <td>
+                    {% if user['premium_search'] %}
+                        Включен
+                    {% else %}
+                        Выключен
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td><b>Кол-во платных диалогов:</b></td>
+                <td>{{user['premium_dialog_time']|length}}</td>
+            </tr>
+            <tr>
+                <td><b>Консультация:</b></td>
+                <td>
+                    {% if user['time_start_premium_dialog'] %}
+                        В платном диалоге
+                    {% else %}
+                        Нет
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                {% if user['complaint']|length > 0 %}
+                <td><b>Жалобы:</b></td>
+                <td>
+                    
+                    <a class="btn btn-danger btn-sm" href="{{ url_for('complaint_view', user_id=user['user_id']) }}"
+                role="button">Жалобы</a> {{user['complaint']|length}} ({{len_new_complaint}})
+                </td>
+                {% endif %}
+            </tr>
+            <tr>
+                {% if user['temp_message']|length > 0 %}
+                <td><b>Прослушка</b></td>
+                <td>
+                    
+                     <a class="btn btn-danger btn-sm" href="{{ url_for('shadowing_view', user_id=user['user_id']) }}"
+                    role="button">Последние сообщения</a>
+                </td>
                 {% endif %}
             </tr>
             <tr>
@@ -133,9 +214,9 @@
         </tbody>
       </table>
     </div>
-
+    
     <br>
-    <form action="{{user['user_id']}}/send_message" method='post'>
+    <form action="{{ url_for('send_user_message', user_id=user['user_id']) }}" method='post'>
     <div class="input-group mb-3">
         <input type="text" name='text' class="form-control" placeholder="Сообщение пользователю" aria-label="Large" aria-describedby="basic-addon2" required>
         <div class="input-group-append">
@@ -161,10 +242,8 @@
             {% else %}
                 <h4 class='text-success'>Верифицированный аккаунт</h4>
             {% endif %}
-        <img src="static/verefication_doc/{{user['user_id']}}/passport_photo.jpg" alt="Паспорт" width="500" tabindex="0"/>
-        <img src="static/verefication_doc/{{user['user_id']}}/selfie_passport_photo.jpg" alt="Селфи с паспорт" width="500" tabindex="0"/>
-        <img src="static/verefication_doc/{{user['user_id']}}/diploma_photo.jpg" alt="Диплом" width="500" tabindex="0"/>
-        <form action="{{user['user_id']}}/verif" method='post'>
+        <img src="{{ url_for('static', filename='verefication_doc/' + user['user_id']|string + '/diploma_photo.jpg') }}" alt="Диплом" width="300" tabindex="0"/>
+        <form action="{{ url_for('user_verif', user_id=user['user_id']) }}" method='post'>
             <br>
                 {% if user['verified_psychologist'] == 'under_consideration' %}
                 <button type="submit" name="confirm" class="btn btn-success btn-lg btn-block">Подтвердить</button>
@@ -195,9 +274,10 @@
         </div>
         <div class="modal-body">
             {% if user['blocked'] == True %}
-            <form action="{{user['user_id']}}/unblocked" method="post">
+            
+            <form action="{{ url_for('unblocked_user', user_id=user['user_id']) }}" method="post">
             {% else %}
-          <form action="{{user['user_id']}}/blocked" method="post">
+          <form action="{{ url_for('blocked_user', user_id=user['user_id']) }}" method="post">
             {% endif %}  
             <input type="text" name="text" class="form-control" placeholder="Сообщение пользователю">
         </div>
@@ -215,6 +295,40 @@
   </div>
 
   <!-- Modal -->
+
+  <!-- Modal review -->
+  <div class="modal fade" id="ReviewModal" tabindex="-1" aria-labelledby="ReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ReviewModalLabel">
+                Отзывы
+        </div>
+        <div class="modal-body">
+            <table class="table table-responsive">
+            <tr>
+                <th scope="col">User</th>
+                <th scope="col">Оценка</th>
+                <th scope="col">Отзыв</th>
+                <th scope="col">Время</th>
+            </tr>
+           {% for review in user['premium_rating'] %}
+            <tr>
+                <td>{{review['from']}}</td>
+                <td>{{review['rating']}}</td>
+                <td>{{review['review']}}</td>
+                <td>{{review['datetime']}}</td>
+            </tr>
+           {% endfor %}
+            </table>
+        </div>
+        <div class="modal-footer">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal review -->
 
 </div>
 </div>
@@ -237,7 +351,7 @@
 });
 
 </script>
-<script src="static/js/modal.js"></script>
+<script src="{{ url_for('static', filename='js/modal.js') }}"></script>
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
     integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
     crossorigin="anonymous"></script>

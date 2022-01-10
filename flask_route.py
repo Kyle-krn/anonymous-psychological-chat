@@ -8,17 +8,39 @@ from keyboard import block_keyboard, main_keyboard
 from database import Users, db
 from webhook_settings import *
 from flask import jsonify
+from qiwi import qiwi_balance
 import pytz
 import os
 import shutil
 import statistics
 import datetime
 import telebot
+import time
+from statistics import mean
+
+
 
 @app.context_processor
-def test_context():
+def utility_processor():
+    def computation_premium_rating(user_id):
+        user = db.get_user_by_id(user_id)
+        data_rating = user['premium_rating']
+        int_rating = [item['rating'] for item in data_rating]
+        return f"{mean(int_rating):.1f}"
+
     verification_count = db.db.users.count_documents({'verified_psychologist': 'under_consideration'})
-    return dict(verification_count=verification_count)
+    complaint_count = db.db.users.count_documents({'complaint.check_admin': False})
+    shadowing_count = db.db.users.count_documents({'$or': [{'rating': {'$lte': -15}}, {'': True}]})
+    transfer_money_count = db.db.users.count_documents({'temp_transfer_money': {'$ne': None}})
+    return dict(verification_count=verification_count, complaint_count=complaint_count, shadowing_count=shadowing_count, transfer_money_count=transfer_money_count, computation_premium_rating=computation_premium_rating)
+
+@app.context_processor
+def utility_processor():
+    def get_username_companion(user_id):
+        user = db.get_user_by_id(user_id)
+        return user['username'] if user['username'] else user['user_id']
+    return dict(get_username_companion=get_username_companion)
+
  
 
 @app.route(WEBHOOK_URL_PATH, methods=['POST'])
@@ -63,10 +85,9 @@ def logout():
 
 @app.route('/<int:page>', methods=['GET', 'HEAD'])
 @app.route('/', methods=['GET', 'HEAD'])
+@login_required
 def index(page=1):
     '''Представление списка пользователей'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     params = {k:v for k,v in request.args.items() if v != ''}
     copy_params = params.copy()
 
@@ -99,6 +120,10 @@ def index(page=1):
     count_search_user = db.db.users.count_documents({'search_companion': True})
     today_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=60 * 24)}})
     now_online_users = db.db.users.count_documents({'statistic.last_action_date': {'$gte': datetime.datetime.now() - datetime.timedelta(minutes=10)}})
+    if 'complaint' in params:
+        search_filter = {'complaint.check_admin': False}
+    elif 'shadowing' in params:
+        search_filter = {'$or': [{'rating': {'$lte': -15}}, {'admin_shadowing': True}]}
     users = db.db.users.find(search_filter)
     count_users = db.db.users.count_documents(search_filter)
     sort_by = '_id'
@@ -145,10 +170,9 @@ def index(page=1):
 
 
 @app.route("/user/<int:user_id>",  methods=['GET'])
+@login_required
 def user_view(user_id):
     '''Детальное представление пользователя'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     user = db.get_user_by_id(user_id)
     user['statistic']['last_action_date'] += datetime.timedelta(hours=3, minutes=0)
     if user is None:
@@ -168,35 +192,113 @@ def user_view(user_id):
         'all_time_in_bot': russian_str_date(all_time_in_bot),                   # Общее время использования бота
         }
     companion = None
+    stat_payment = {
+                'consumption_total': sum([cons['coast'] for cons in user['history_payment'] if cons['status'] == 'consumption']), # Расход
+                'replenishment_total': sum([cons['coast'] for cons in user['history_payment'] if cons['status'] == 'replenishment']), # Пополнение
+                'income_total': sum([cons['coast'] for cons in user['history_payment'] if cons['status'] == 'income']) # Доход
+                }
     if user['companion_id']:
         companion = db.db.users.find_one({'user_id': user['companion_id']})
-    return render_template('user.html', user=user, companion=companion, statistic=statistic)
+    new_complaint = [comp for comp in user['complaint'] if comp['check_admin'] is False]
+    
+    return render_template('user.html', user=user, companion=companion, statistic=statistic, len_new_complaint=len(new_complaint), stat_payment=stat_payment)
 
+
+
+@app.route("/user/<int:user_id>/shadowing",  methods=['GET'])
+@login_required
+def shadowing_view(user_id):
+    '''Представление прослушивания сообщений'''
+    user = db.get_user_by_id(user_id)
+    if len(user['temp_message']) == 0:
+        abort(404)
+    user['temp_message'].reverse()
+    return render_template('shadowing.html', user=user)
+
+@app.route("/user/<int:user_id>/review",  methods=['GET'])
+@login_required
+def review_view(user_id):
+    '''Представление отзывов вериф. психолога'''
+    user = db.get_user_by_id(user_id)
+    if len(user['premium_rating']) == 0:
+        abort(404)
+    return render_template('review.html', user=user)
+
+@app.route("/user/<int:user_id>/complaint",  methods=['GET'])
+@login_required
+def complaint_view(user_id):
+    '''Представления жалоб'''
+    user = db.get_user_by_id(user_id)
+    if len(user['complaint']) == 0:
+        abort(404)
+    return render_template('complaint.html', user=user)
 
 @app.route("/bulk",  methods=['GET'])
+@login_required
 def bulk_handler():
     '''Представление массовой рассылки пользователям'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
     return render_template('bulk.html')
 
-@app.route("/test",  methods=['GET'])
-def test_hadfdndler():
-    x = db.db.users.find()
-    count = 0
-    for u in x:
-        if u['companion_id']:
-            companion = db.get_user_by_id(u['companion_id'])
-            if companion['companion_id'] is None:
-                count += 1
-                print(u)
-    return render_template('bulk.html')
 
-@app.route("/<int:user_id>/verif",  methods=['POST'])
+@app.route("/transfer_money", methods=['GET'])
+@login_required
+def transfer_money_view():
+    '''Список вывода денег'''
+    balance = qiwi_balance()
+    users = db.db.users.find({'temp_transfer_money': {'$ne' : None}})
+    return render_template('transfer_money.html', balance=balance, users=users)
+
+@app.route("/get_money", methods=['GET'])
+@login_required
+def get_money_view():
+    '''Список пополнений счёта'''
+    balance = qiwi_balance()
+    users = db.db.users.find({'history_payment.status': 'replenishment'}).sort('history_payment.date', -1)
+    data = [{'user_id': user['user_id'], 'username': user['username'], 'balance': user['balance'], 'history_payment': [payment for payment in user['history_payment'] if payment['status'] == 'replenishment']} for user in users]
+    return render_template('get_money.html', balance=balance, users=data)
+
+
+@app.route("/user/<int:user_id>/complaint_post",  methods=['POST'])
+@login_required
+def complaint_post(user_id):
+    '''Отмечает жалобу обработанной'''
+    str_date = request.form['date']
+    date = datetime.datetime.strptime(str_date, "%Y-%m-%d %H:%M:%S")
+    db.db.users.update_one({'user_id': user_id, 'complaint.date': date}, {'$set': {'complaint.$.check_admin': True}})
+    return redirect(url_for('complaint_view', user_id=user_id))
+
+
+@app.route("/user/<int:user_id>/cancel_transfer_money/",  methods=['POST'])
+@login_required
+def cancel_transfer_money_post(user_id):
+    '''Отмена вывода'''
+    user = db.get_user_by_id(user_id)
+    if not user['temp_transfer_money']:    return
+    temp_transfer_money = user['temp_transfer_money']
+    db.set_value(user_id=user_id, key='temp_transfer_money', value=None)
+    db.inc_value(user_id=user_id, key='balance', value=temp_transfer_money['coast'])
+    bot.send_message(chat_id=user_id, text='**Ваша заявка на вывод средств была отклонена**')
+    return redirect(url_for('transfer_money_view'))
+
+@app.route("/user/<int:user_id>/confirm_transfer_money/",  methods=['POST'])
+@login_required
+def confirm_transfer_money_post(user_id):
+    '''Подтверждение отправки вывода'''
+    user = db.get_user_by_id(user_id)
+    if not user['temp_transfer_money']:    return
+    db.set_value(user_id=user_id, key='temp_transfer_money', value=None)
+    temp_transfer_money = user['temp_transfer_money']
+    temp_transfer_money['status'] = 'transfer_money'
+    db.push_value(user_id=user_id, key='history_payment', value=temp_transfer_money)
+    bot.send_message(chat_id=user_id, text='**Ваша заявка на вывод средств была выполнена**')
+    return redirect(url_for('transfer_money_view'))
+
+@app.route("/user/<int:user_id>/verif",  methods=['POST'])
+@login_required
 def user_verif(user_id):
     '''Верификация пользователя'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     if 'reject' in request.form:            # Отклонение верификации
         filepath = f'static/verefication_doc/{user_id}/'
         # db.update_verifed_psychologist(user_id, False)
@@ -213,11 +315,10 @@ def user_verif(user_id):
     return redirect(url_for('user_view', user_id=user_id))
 
 
-@app.route("/<int:user_id>/send_message",  methods=['POST'])
+@app.route("/user/<int:user_id>/send_message",  methods=['POST'])
+@login_required
 def send_user_message(user_id):
     '''Отправить сообщение пользователю'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     text = '<u><b>Сообщение от администрации:</b></u>\n\n' +  request.form['text']
     try:
         bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
@@ -226,19 +327,16 @@ def send_user_message(user_id):
     return redirect(url_for('user_view', user_id=user_id))
 
 
-@app.route("/<int:user_id>/blocked",  methods=['POST'])
+@app.route("/user/<int:user_id>/blocked",  methods=['POST'])
+@login_required
 def blocked_user(user_id):
     '''Блокировка пользователя'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     user = db.get_user_by_id(user_id)
     if user['companion_id']:            # Если у пользователя есть собесендик, завершаем диалог с ним
         db.push_date_in_end_dialog_time(user_id) # Записываем дату и время конца диалога
-        # db.update_statistic_inc(user_id, 'output_finish')
         db.inc_value(user_id=user_id, key='statistic.output_finish', value=1)
         bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
-        # db.update_statistic_inc(user['companion_id'], 'input_finish')
         db.inc_value(user_id=user['companion_id'], key='statistic.input_finish', value=1)
         db.cancel_search(user_id)
     text = '<u><b>Сообщение от администрации о блокировке:</b></u>\n\n' +  request.form['text'] 
@@ -246,16 +344,26 @@ def blocked_user(user_id):
         bot.send_message(chat_id=user_id, text=text, reply_markup=block_keyboard(), parse_mode='HTML')
     except telebot.apihelper.ApiTelegramException:
         print('chat_not_found')
-    # db.blocked_user(user_id, True)
     db.set_value(user_id=user_id, key='blocked', value=True)
     return redirect(url_for('user_view', user_id=user_id))
 
+@app.route("/user/<int:user_id>/shadowing_post",  methods=['POST'])
+@login_required
+def admin_shadowing_post(user_id):
+    '''Кидает выбранного пользователя в слежку'''
+    try:
+        if 'true' in request.form:
+            db.set_value(user_id=user_id, key='admin_shadowing', value=True)
+        elif 'false' in request.form:
+            db.set_value(user_id=user_id, key='admin_shadowing', value=False)
+        return redirect(url_for('user_view', user_id=user_id))
+    except Exception as e:
+        print(e)
 
-@app.route("/<int:user_id>/unblocked",  methods=['POST'])
+@app.route("/user/<int:user_id>/unblocked",  methods=['POST'])
+@login_required
 def unblocked_user(user_id):
     '''Разблокировка пользователя'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     text = '<u><b>Сообщение от администрации о разблокировке:</b></u>\n\n' +  request.form['text']
     try:
         bot.send_message(chat_id=user_id, text=text, reply_markup=main_keyboard(), parse_mode='HTML')
@@ -267,10 +375,9 @@ def unblocked_user(user_id):
 
 
 @app.route("/bulk_mailing_post",  methods=['POST'])
+@login_required
 def bulk_mailing():
     '''Массовая рассылка пользователям'''
-    if current_user.is_authenticated is False:
-        return redirect(url_for('login'))
     params = {k:v for k,v in request.form.items() if v != ''}
     mongo_filter = {}
     if 'category' in params:
@@ -288,6 +395,7 @@ def bulk_mailing():
     users = db.db.users.find(mongo_filter)
     count_users = db.db.users.count_documents(mongo_filter)
     photo_file_id = None
+    count = 0
     for item in range(count_users):
         try:
             if 'img' in request.files:
@@ -295,26 +403,16 @@ def bulk_mailing():
                     message = bot.send_photo(users[item]['user_id'], request.files['img'], caption=request.form['text'], parse_mode='HTML')
                     photo_file_id = message.photo[2].file_id
                 else:
-                    bot.send_photo(users[item]['user_id'], photo_file_id)
+                    bot.send_photo(users[item]['user_id'], photo_file_id, caption=request.form['text'], parse_mode='HTML')
             else:
-                bot.send_message(user['user_id'], text='<u><b>Сообщение от администрации:</b></u>\n\n'+request.form['text'], parse_mode='HTML')
+                bot.send_message(users[item]['user_id'], text='<u><b>Сообщение от администрации:</b></u>\n\n'+request.form['text'], parse_mode='HTML')
+            count += 1
+            if count % 29 == 0:
+                count = 0
+                time.sleep(15)
         except telebot.apihelper.ApiTelegramException as e:
             print(e)
     return redirect(url_for('bulk_handler'))
 
-
-
-@app.route('/get_username', methods=['POST'])
-def get_username():
-    '''AJAX получение username собеседника'''
-    user = db.get_user_by_id(int(request.form['user_id']))
-    if user['username']:
-        username = user['username']
-    else:
-        username = user['user_id']
-    return jsonify({'username': username})
-
-
-# @app.route('/badge_count', methods=['GET'])
 
 

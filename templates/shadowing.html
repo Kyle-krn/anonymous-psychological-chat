@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container">
+    <br>
+    <div class="text-center">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('user_view', user_id=user['user_id']) }}"
+                role="button">Назад в профиль</a>
+    </div>
+    <div class="table-responseve">
+        <table class="table">
+            <tr>
+                <th>#</th>
+                <th>Сообщение</th>
+            </tr>
+            {% for message in user['temp_message'] %}
+                <tr>
+                    <td><b>{{loop.index}}</b></td>
+                    <td>{{message}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
