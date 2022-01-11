@@ -403,7 +403,7 @@ def cancel_register_next_step_handler(call):
     bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
 
-@bot.callback_query_handler(func=lambda call: call.data == 'cancel_verif')
+@bot.callback_query_handler(func=lambda call: call.data == 'cancel_veif')
 def cancel_verif(call):
     '''Отмена цикла хендлеров для верификации'''
     user = db.get_user_by_id(call.message.chat.id)
