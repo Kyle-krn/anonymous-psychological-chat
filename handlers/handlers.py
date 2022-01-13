@@ -275,10 +275,10 @@ def next_companion_inline(call):
         if user['helper'] is False and user['time_start_premium_dialog']:
             '''Если диалог завершает пациент с оплаченной консультацией, принудительно завершаем ее'''
             stop_patient_premium_dialog(user)
+            bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, тем самым закончив платную консультацию.', reply_markup=main_keyboard())
         user = db.get_user_by_id(call.message.chat.id)
         db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
         db.inc_value(user_id=call.message.chat.id, key='statistic.output_finish', value=1)
-        bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, тем самым закончив платную консультацию.', reply_markup=main_keyboard())
         db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
         db.inc_value(user_id=user['companion_id'], key='statistic.input_finish', value=1)
         rating_message(call.message)
