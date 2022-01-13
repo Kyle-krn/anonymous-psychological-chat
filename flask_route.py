@@ -59,7 +59,7 @@ def webhook():
 def login():
     '''Представление аутентификации'''
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('list_users_view'))
     if request.method == "POST":
         login = request.form['login']
         pswd = request.form['password']
@@ -69,7 +69,7 @@ def login():
         else:
             if user.check_password(pswd):
                 login_user(user)
-                return redirect(url_for('index'))
+                return redirect(url_for('list_users_view'))
             else:
                 flash('Попробуйте снова')
     return render_template('login.html')
@@ -86,7 +86,7 @@ def logout():
 @app.route('/<int:page>', methods=['GET', 'HEAD'])
 @app.route('/', methods=['GET', 'HEAD'])
 @login_required
-def index(page=1):
+def list_users_view(page=1):
     '''Представление списка пользователей'''
     params = {k:v for k,v in request.args.items() if v != ''}
     copy_params = params.copy()
@@ -149,14 +149,14 @@ def index(page=1):
     if page == last_page:
         next_page = None
     if page > last_page:
-        return redirect(url_for('index', **copy_params))
+        return redirect(url_for('list_users_view', **copy_params))
 
     query_string = request.query_string.decode('utf-8')
     if query_string:
         query_string = '?' + query_string
     offset = (page - 1) * 20
     users = users.skip(offset).limit(limit)
-    return render_template('index.html', users=users, 
+    return render_template('list_users.html', users=users, 
                                          count_users=count_users, 
                                          count_search_user=count_search_user,
                                          today_online_users=today_online_users,
@@ -233,9 +233,9 @@ def complaint_view(user_id):
         abort(404)
     return render_template('complaint.html', user=user)
 
-@app.route("/bulk",  methods=['GET'])
+@app.route("/mass_mailing",  methods=['GET'])
 @login_required
-def bulk_handler():
+def mass_mailing_view():
     '''Представление массовой рассылки пользователям'''
     if current_user.is_authenticated is False:
         return redirect(url_for('login'))
@@ -412,7 +412,7 @@ def bulk_mailing():
                 time.sleep(15)
         except telebot.apihelper.ApiTelegramException as e:
             print(e)
-    return redirect(url_for('bulk_handler'))
+    return redirect(url_for('mass_mailing_view'))
 
 
 

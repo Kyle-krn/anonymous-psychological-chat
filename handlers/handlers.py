@@ -40,6 +40,7 @@ def check_premium_dialog(user):
                     db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
                     
                     bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
+                    
                     try:
                         bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
                         push_data_premium_rating(companion) # Отправляем сообщение о том что можно оставить отзыв
@@ -239,7 +240,6 @@ def companion(message):
     return bot.send_message(chat_id=message.chat.id, text='Ожидание собеседника ⌛', reply_markup=control_companion(next=False))
 
 
-
 @bot.message_handler(regexp='(^Следующий собеседник($|\s⏭))')
 def next_companion(message):
     '''Отправляет сообщение с подтверждением о пропуске собеседника'''
@@ -370,80 +370,7 @@ def rating_handler(call):
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Спасибо, ваш голос учтен!')
 
 
-@bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'complaint')
-def complaint_handlers(call):
-    '''Оставить жалобу на человека. Хендлер вызывается если человек поставил дизлайк собеседнику'''
-    bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    if call.data.split('~')[1] == 'yes':
-        companion_id = int(call.data.split('~')[2])
-        message = bot.send_message(call.message.chat.id, f"Напишите жалобу ниже.", reply_markup=cancel_next_handlers()) 
-        bot.register_next_step_handler(message, get_complaint, companion_id)
-
-
-def get_complaint(message, companion_id):
-    '''Принимаем текст жалобы'''
-    if message.text:
-        complaint = message.text
-        data = {
-            'complaint': complaint,
-            'date': datetime.utcnow().replace(microsecond=0),
-            'check_admin': False 
-        }
-        db.push_value(user_id=companion_id, key='complaint', value=data)
-        bot.send_message(chat_id=message.chat.id, text='Спасибо, мы обязательно рассмотрим вашу жалобу в ближайшее время')
-        bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
-    else:
-        message = bot.send_message(message.chat.id, f"Напишите жалобу ниже.", reply_markup=cancel_next_handlers()) 
-        bot.register_next_step_handler(message, get_complaint, companion_id)
-
-
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel')
 def cancel_register_next_step_handler(call):
     bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
     bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == 'cancel_veif')
-def cancel_verif(call):
-    '''Отмена цикла хендлеров для верификации'''
-    user = db.get_user_by_id(call.message.chat.id)
-    bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-    bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    if user['verified_psychologist'] != False:    return
-    filepath = f'static/verefication_doc/{call.message.chat.id}/'
-    if os.path.exists(filepath):
-        shutil.rmtree(filepath)
-
-
-@bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'verification')
-def verification_handler(call):
-    '''Начало загрузки документов для верификации'''
-    if blocked_filter(call.message):    return
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-    if call.data.split('~')[1]  == 'yes':
-        message = bot.send_message(call.message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers_verif()) 
-        bot.register_next_step_handler(message, send_photo_diploma)
-
-
-def save_photo(message, file_name):
-    '''Сохранение фото на сервер'''
-    file_info = bot.get_file(message.photo[-1].file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    filepath = f'static/verefication_doc/{message.chat.id}/'
-    if not os.path.exists(filepath):
-        os.mkdir(filepath)
-    src = filepath + file_name + '.jpg'
-    with open(src, 'wb') as new_file:
-        new_file.write(downloaded_file)
-
-
-def send_photo_diploma(message):
-    '''Шаг #3 - Загружаем фото диплома или трудовой книжки'''
-    if message.photo:
-        save_photo(message, 'diploma_photo')
-        bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
-        bot.send_message(chat_id=message.chat.id, text='Ждите решения администрации. Обычно на это уходит не больше 1 суток.')            
-        db.set_value(user_id=message.chat.id, key='verified_psychologist', value='under_consideration')
-    else:
-        message = bot.send_message(message.chat.id, f"Пришлите фото диплома об образовании психолога или трудовую книжку.", reply_markup=cancel_next_handlers_verif()) 
-        bot.register_next_step_handler(message, send_photo_diploma)

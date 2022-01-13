@@ -97,7 +97,7 @@ def review_psy(message, rating, review_for):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'stop_premium_rating')
 def send_rating_without_review(call):
-    '''Завершает оценку психолога без отзыва'''
+    '''Завершает оценку психолога без письменного отзыва'''
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         review_for = int(call.data.split('~')[1])
@@ -117,7 +117,7 @@ def send_rating_without_review(call):
 
 @bot.message_handler(commands=['companion_premium_rating'])
 def view_command_premium_rating(message):
-    '''По команде отправляет рейтинг и отзывы, если его собеседник вериф. психолог'''
+    '''По команде отправляет рейтинг и отзывы собеседника, если он вериф. психолог'''
     user = db.get_user_by_id(message.chat.id)
     if not user['companion_id']:    return
     companion_user = db.get_user_by_id(user['companion_id'])

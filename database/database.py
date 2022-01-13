@@ -10,8 +10,8 @@ from utils import delete_microseconds
 class DBclient:
     def __init__(self):
         self.client = MongoClient(MONGO_LINK)
-        self.db = self.client['anonymous_chat']
-        # self.db = self.client['chat']
+        # self.db = self.client['anonymous_chat']
+        self.db = self.client['chat']
 
     def cancel_search(self, user_id):
         '''Выключает поиск'''
@@ -124,8 +124,20 @@ class DBclient:
                 },
                 'premium_search': False,        # Премиум поиск - (для кат. "Мне нужна помощь - Поиск только вериф. психологов", для психологов - Поиск пациентов с не 0ым балансом)
                 'time_start_premium_dialog': None,          # Если платный чат есть, здесь данные о старте диалога, если None - платного чата нет
-                'premium_rating': [],                       # Отзывы и баллы для псхиологов
-                'data_premium_rating_companion': [],        # Данные что бы отзыв и балл достался определенному психологу
+                'premium_rating': [
+                                    # {
+                                    # 'rating': rating | int((1-5)),
+                                    # 'review': review | str,
+                                    # 'datetime': datetime.utcnow().replace(microsecond=0), | datetime
+                                    # 'from': message.chat.id   int()
+                                    # }
+                ],                       # Отзывы и баллы для псхиологов
+                'data_premium_rating_companion': [
+                                            # {
+                                            #     'user_id': companion_user['user_id'],
+                                            #     'message_id': message_premium_rating.message_id
+                                            # }
+                ],        # Данные что бы отзыв и балл достался определенному психологу
                 'premium_dialog_time': [                    # Данные о премиум диалогах
                                             # {
                                             #     'start':
@@ -135,9 +147,15 @@ class DBclient:
                                             #     'patient':
                                             # }
                                         ],
-                'complaint': [],                         # Жалобы
+                'complaint': [
+                            #  {
+                            # 'complaint': complaint,
+                            # 'date': datetime.utcnow().replace(microsecond=0),
+                            # 'check_admin': False 
+                            #  }
+                             ],                         # Жалобы
                 
-                'admin_shadowing': False,                # Режим слежки от админа (используется для юзеров с жалобами)
+                'admin_shadowing': False,                # Режим слежки от админа (используется для юзеров с жалобами по решению админа)
                 'temp_message': [],                       # Последние 100 сообщений
             }
             self.db.users.insert_one(user)
