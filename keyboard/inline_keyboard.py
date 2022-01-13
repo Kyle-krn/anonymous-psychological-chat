@@ -44,12 +44,14 @@ def cancel_next_handlers():
     return keyboard
 
 def cancel_next_handlers_verif():
+    '''Отмена верификации'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Отмена', callback_data='cancel_veif')
     keyboard.add(button)
     return keyboard
 
 def helper_keyboard():
+    '''Отправляется при старте бота с не выбранной категорией'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Я хочу помочь', callback_data='helper~true')
     button1 = types.InlineKeyboardButton(text='Мне нужна помощь', callback_data='helper~false')
@@ -58,6 +60,7 @@ def helper_keyboard():
     return keyboard
 
 def choise_sum_qiwi(custom_coast=None):
+    '''Выбрать сумму пополнения бота, в custom_coast передается при желании начать платный диалог, но не хватает средств'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='300 р.', callback_data='qiwi_order~300')
     button1 = types.InlineKeyboardButton(text='500 р.', callback_data='qiwi_order~500')
@@ -73,6 +76,7 @@ def choise_sum_qiwi(custom_coast=None):
     return keyboard
 
 def order_keyboard():
+    '''Клавиатура заказа'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Проверить платёж', callback_data='check_payment')
     button1 = types.InlineKeyboardButton(text='Тех. поддержка', url='https://t.me/kyle_krn')
@@ -86,15 +90,9 @@ def confirm_hisory_payment():
     keyboard.add(types.InlineKeyboardButton(text='История баланса', callback_data='history_balance~1'))
     return keyboard
 
-def about_me_keyboard():
-    keyboard = types.InlineKeyboardMarkup()
-    # keyboard.add(types.InlineKeyboardButton(text='Изменить данные обо мне', callback_data='about_me'))
-    keyboard.add(types.InlineKeyboardButton(text='Изменить цену 💰', callback_data='about_me_change~price'))
-    keyboard.add(types.InlineKeyboardButton(text='Изменить имя 🗯', callback_data='about_me_change~name'))
-    keyboard.add(types.InlineKeyboardButton(text='Изменить "Обо мне" 📃', callback_data='about_me_change~about'))
-    return keyboard
     
 def history_payment_keyboard(payment_data, previous_page, next_page, page):
+    '''Клавиатура отображения истории баланса (пополнение, расход, доход, вывод)'''
     keyboard = types.InlineKeyboardMarkup()
     for item in payment_data:
         text = ''
@@ -127,7 +125,18 @@ def history_payment_keyboard(payment_data, previous_page, next_page, page):
     keyboard.add(close_button)
     return keyboard
 
+
+def about_me_keyboard():
+    '''Клавиатура для вериф. психологов, для измения словаря "about_me"'''
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text='Изменить цену 💰', callback_data='about_me_change~price'))
+    keyboard.add(types.InlineKeyboardButton(text='Изменить имя 🗯', callback_data='about_me_change~name'))
+    keyboard.add(types.InlineKeyboardButton(text='Изменить "Обо мне" 📃', callback_data='about_me_change~about'))
+    return keyboard
+
+
 def i_need_help_settings_keyboard():
+    '''Клавиатура для нуждающихся в помощи с не нулевым балансом'''
     keyboard = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Искать всех', callback_data='i_need_help~all')
     button1 = types.InlineKeyboardButton(text='Искать только верифицированных психологов', callback_data='i_need_help~verif')
@@ -136,22 +145,17 @@ def i_need_help_settings_keyboard():
     return keyboard
 
 def premium_rating_keyboard():
+    '''Клавиатура рейтинга после заврешения платной консультации'''
     keyboard = types.InlineKeyboardMarkup()
-    # for i in range(1,6):
-    b = types.InlineKeyboardButton(text='⭐', callback_data='premium_rating~1')
-    b1 = types.InlineKeyboardButton(text='⭐⭐', callback_data='premium_rating~2')
-    b2 = types.InlineKeyboardButton(text='⭐⭐⭐', callback_data='premium_rating~3')
-    b3 = types.InlineKeyboardButton(text='⭐⭐⭐⭐', callback_data='premium_rating~4')
-    b4 = types.InlineKeyboardButton(text='⭐⭐⭐⭐⭐', callback_data='premium_rating~5')
-    # keyboard.add(b,b1,b2,b3,b4)
-    keyboard.add(b4)
-    keyboard.add(b3)
-    keyboard.add(b2)
-    keyboard.add(b1)
-    keyboard.add(b)
+    keyboard.add(types.InlineKeyboardButton(text='⭐⭐⭐⭐⭐', callback_data='premium_rating~5'))
+    keyboard.add(types.InlineKeyboardButton(text='⭐⭐⭐⭐', callback_data='premium_rating~4'))
+    keyboard.add(types.InlineKeyboardButton(text='⭐⭐⭐', callback_data='premium_rating~3'))
+    keyboard.add(types.InlineKeyboardButton(text='⭐⭐', callback_data='premium_rating~2'))
+    keyboard.add(types.InlineKeyboardButton(text='⭐', callback_data='premium_rating~1'))
     return keyboard
 
 def stop_review_keyboard(review_for, rating):
+    '''Заканчивает оценку платной консультации без текстового отзыва'''
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text='Закончить', callback_data=f'stop_premium_rating~{review_for}~{rating}'))
     return keyboard
@@ -162,6 +166,7 @@ def start_view_review_keyboard(rating_target='companion'):
     return keyboard
 
 def view_review_keyboard(page, previous_page, next_page, rating_target='companion'):
+    '''Клавиатура управления отображения отзывов (1 страница - 1 отзыв)'''
     keyboard = types.InlineKeyboardMarkup()
     page_button = types.InlineKeyboardButton(text=f'Страница #{page}', callback_data=f'view_{rating_target}_premium_rating~{page}') 
     if previous_page and next_page:
@@ -180,12 +185,46 @@ def view_review_keyboard(page, previous_page, next_page, rating_target='companio
     return keyboard
 
 def complaint_keyboard(companion_id):
+    '''Клавиатура подвтреждения оставить жалобу'''
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text=f'Да', callback_data=f'complaint~yes~{companion_id}'), 
                  types.InlineKeyboardButton(text=f'Нет', callback_data=f'complaint~no~None'))
     return keyboard
 
 def transfer_money_keyboard():
+    '''Клавиатура дял вывода денег'''
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text=f'Вывести деньги', callback_data=f'transfer_money'))
+    return keyboard
+
+
+def ask_favorite_chat_keyboard(user_id):
+    '''Клавиатура подтверждения добавления в избранное, отправляется после оставления отзыва на платный чат'''
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text=f'Добавить в избранное', callback_data=f'add_favorite_chat~yes~{user_id}'),
+                 types.InlineKeyboardButton(text=f'Нет', callback_data=f'add_favorite_chat~no'))
+    return keyboard
+
+def favorite_chat_keyboard(favorite_chat):
+    '''Клавиатура с отображением списка избранных чатов'''
+    keyboard = types.InlineKeyboardMarkup()
+    for item in favorite_chat:
+        keyboard.add(types.InlineKeyboardButton(text=item["name"], callback_data=f'call_favorite_chat~{item["user_id"]}'))
+    keyboard.add(types.InlineKeyboardButton(text='Отмена ❌', callback_data='cancel'))
+    return keyboard
+
+
+def cancel_call_favorite_chat_keyboard():
+    '''Отменить свою собественную заявку на избранный чат'''
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text="Отменить ❌", callback_data=f'cancel_call_favorite_chat'))
+    return keyboard
+
+
+def control_call_favorite_chat_keyboard():
+    '''Клавиатура подтверждения платного диалога для психолога'''
+    keyboard = types.InlineKeyboardMarkup()
+    yes_button = types.InlineKeyboardButton(text="Да", callback_data=f'start_favorite_chat')
+    no_button = types.InlineKeyboardButton(text="Нет", callback_data=f'cancel_call_favorite_chat')
+    keyboard.add(yes_button, no_button)
     return keyboard

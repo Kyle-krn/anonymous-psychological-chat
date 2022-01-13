@@ -12,7 +12,6 @@ def settings_user(message):
     user = db.get_user_by_id(message.chat.id)
     return bot.send_message(chat_id=message.chat.id, text='Выберите свою роль', reply_markup=settings_keyboard(user))
 
-
 @bot.message_handler(regexp="(^Я хочу помочь($|\s👩‍⚕️))")
 def i_want_help(message):
     if system_message_filter(message):  return
@@ -78,7 +77,6 @@ def i_need_help_callback(call):
 @bot.message_handler(commands=['my_rating'])
 @bot.message_handler(regexp="(^Мой рейтинг($|\s📈))")
 def my_rating(message):
-    # if system_message_filter(message):  return
     if blocked_filter(message):    return
     db.update_last_action_date(message.chat.id)
     user = db.get_user_by_id(message.chat.id)

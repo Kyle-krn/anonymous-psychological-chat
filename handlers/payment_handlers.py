@@ -11,6 +11,7 @@ from statistics import mean
 @bot.message_handler(commands=['my_balance'])
 @bot.message_handler(regexp="(^Мой баланс($|\s💰))")
 def my_balance(message):
+    '''Отображает остаток на счету'''
     user = db.get_user_by_id(message.chat.id)
     text = f'На вашем счету --- {user["balance"]} руб.'
     keyboard = None
@@ -52,10 +53,7 @@ def history_balance(call):
 @bot.message_handler(commands=['balance'])
 @bot.message_handler(regexp="(^Пополнить счёт($|\s💳))")
 def start_qiwi_order(message):
-    try:
-        return bot.send_message(message.chat.id, text='Выберите сумму пополнения:', reply_markup=choise_sum_qiwi())
-    except Exception as e:
-        print(e)
+    return bot.send_message(message.chat.id, text='Выберите сумму пополнения:', reply_markup=choise_sum_qiwi())
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'qiwi_order')
@@ -98,6 +96,7 @@ def create_qiwi_order(call):
 
 
 def get_qiwi_order(message):
+    '''Отправляет сообщение с ссылкой для оплаты (сообщение блокируется, может быть отменено по кнопке "Отмена")'''
     bot.delete_message(message.chat.id, message.message_id)
     bot.delete_message(message.chat.id, message.message_id-1)
     user = db.get_user_by_id(message.chat.id)
@@ -136,42 +135,40 @@ def reject_bill_qiwi(call):
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'check_payment')
 def check_bill_qiwi(call):
     '''Проверить платеж'''
-    try:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        user = db.get_user_by_id(call.message.chat.id)
-        payment = user['temp_payment']
-        answer = check_bill_api_qiwi(payment['billid'])
-        companion = None
-        if user['companion_id']:
-            companion = db.get_user_by_id(user['companion_id'])
-        text = ''
-        if answer['status']['value'] == 'EXPIRED':
-            '''Заявка истекла по времени'''
-            db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
-            bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-            return bot.send_message(text='Ваша заявка на пополнение счёта удалена из за истечения времени ссылки')
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    user = db.get_user_by_id(call.message.chat.id)
+    payment = user['temp_payment']
+    answer = check_bill_api_qiwi(payment['billid'])
+    companion = None
+    if user['companion_id']:
+        companion = db.get_user_by_id(user['companion_id'])
+    text = ''
+    if answer['status']['value'] == 'EXPIRED':
+        '''Заявка истекла по времени'''
+        db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
+        bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
+        return bot.send_message(text='Ваша заявка на пополнение счёта удалена из за истечения времени ссылки')
 
-        elif answer['status']['value'] == 'WAITING':
-            '''Заявка ожидает платежа'''
-            text = f'Счёт не оплачен, если вы только что оплатили, подождите 1 минуту и попробуйте провермть платёж снова \n\n\n' \
-            f'К оплате {payment["coast_with_commission"]} рублей + 2% комиссии QIWI.\n\n' \
-            f'Оплата по ссылке: {payment["pay_url"]}\n\n' \
-            f'После оплаты нажмите кнопку "Проверить платёж"\n\n' \
-            f'Если вы передумали или нажали случайно, нажмите на кнопку "Отмена"\n\n' \
-            'В случе не оплаты, платёж автоматически отменится через час после создания заяки.'
-            message = bot.send_message(call.message.chat.id, text, reply_markup=order_keyboard()) 
-            return bot.register_next_step_handler(message, get_qiwi_order)
-        elif answer['status']['value'] == 'PAID':
-            '''Заявка оплачена'''
-            db.push_value(user_id=call.message.chat.id, key='history_payment', value=payment)
-            db.inc_value(user_id=call.message.chat.id, key='balance', value=payment['coast'])
-            user = db.get_user_by_id(call.message.chat.id)
-            db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
-            bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
-            text = f'Ваш счёт был успешно оплачен, на ваш баланс зачисленно {payment["coast"]} рублей.\n\nВаш баланс - {user["balance"]} рублей.'
-            bot.send_message(call.message.chat.id, text)
-    except Exception as e:
-        print(e)
+    elif answer['status']['value'] == 'WAITING':
+        '''Заявка ожидает платежа'''
+        text = f'Счёт не оплачен, если вы только что оплатили, подождите 1 минуту и попробуйте провермть платёж снова \n\n\n' \
+        f'К оплате {payment["coast_with_commission"]} рублей + 2% комиссии QIWI.\n\n' \
+        f'Оплата по ссылке: {payment["pay_url"]}\n\n' \
+        f'После оплаты нажмите кнопку "Проверить платёж"\n\n' \
+        f'Если вы передумали или нажали случайно, нажмите на кнопку "Отмена"\n\n' \
+        'В случе не оплаты, платёж автоматически отменится через час после создания заяки.'
+        message = bot.send_message(call.message.chat.id, text, reply_markup=order_keyboard()) 
+        return bot.register_next_step_handler(message, get_qiwi_order)
+    elif answer['status']['value'] == 'PAID':
+        '''Заявка оплачена'''
+        db.push_value(user_id=call.message.chat.id, key='history_payment', value=payment)
+        db.inc_value(user_id=call.message.chat.id, key='balance', value=payment['coast'])
+        user = db.get_user_by_id(call.message.chat.id)
+        db.set_value(user_id=call.message.chat.id, key='temp_payment', value=None)
+        bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
+        text = f'Ваш счёт был успешно оплачен, на ваш баланс зачисленно {payment["coast"]} рублей.\n\nВаш баланс - {user["balance"]} рублей.'
+        bot.send_message(call.message.chat.id, text)
+
 
 
 ######################################################################
@@ -180,23 +177,22 @@ def check_bill_qiwi(call):
 @bot.message_handler(regexp="(^Вывод денег($|\s💸))")
 def transfer_money_start(message):
     '''Вывод средств с баланса для верифицированных психологов'''
-    try:
-        user = db.get_user_by_id(message.chat.id)
-        system_message_filter(message)
-        blocked_filter(message)
-        if user['verified_psychologist'] is not True:
-            return
-        if user['temp_transfer_money']:
-            return bot.send_message(chat_id=message.chat.id, text='<b>Ваша прошлая заявка ещё не обработана, вывод будет доступен после обработки прошлой заявки.</b>', parse_mode='HTML')
-        text = f"<b>Доступно для вывода {user['balance']} руб.\nВнимание! Вывод средств выполняется на QIWI кошелек и обрабатывается в ручном режиме, деньги на ваш кошелёк поступят " \
-                "в течении суток после оформления выплаты. Пожалуйста, вводите номер телефона только с привязанным QIWI кошельком!\nМаксимальная сумма для единовременного вывода - 10000 р.</b>"
-        message = bot.send_message(message.chat.id, text=text, reply_markup=transfer_money_keyboard(), parse_mode='HTML') 
-    except Exception as e:
-        print(e)
+    user = db.get_user_by_id(message.chat.id)
+    system_message_filter(message)
+    blocked_filter(message)
+    if user['verified_psychologist'] is not True:
+        return
+    if user['temp_transfer_money']:
+        return bot.send_message(chat_id=message.chat.id, text='<b>Ваша прошлая заявка ещё не обработана, вывод будет доступен после обработки прошлой заявки.</b>', parse_mode='HTML')
+    text = f"<b>Доступно для вывода {user['balance']} руб.\nВнимание! Вывод средств выполняется на QIWI кошелек и обрабатывается в ручном режиме, деньги на ваш кошелёк поступят " \
+            "в течении суток после оформления выплаты. Пожалуйста, вводите номер телефона только с привязанным QIWI кошельком!\nМаксимальная сумма для единовременного вывода - 10000 р.</b>"
+    message = bot.send_message(message.chat.id, text=text, reply_markup=transfer_money_keyboard(), parse_mode='HTML') 
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'transfer_money')
 def transfer_money_handler(call):
+    '''Предлагаем ввести сумму вывода'''
     bot.delete_message(call.message.chat.id, call.message.message_id)
     user = db.get_user_by_id(call.message.chat.id)
     message = bot.send_message(call.message.chat.id, text=f'<b>На вашем счету {user["balance"]} руб.\nВведите сумму вывода.</b>', reply_markup=cancel_next_handlers(), parse_mode='HTML') 
@@ -204,6 +200,7 @@ def transfer_money_handler(call):
 
 
 def transfer_money_count(message):
+    '''Принимаем сумму и просим ввести номер киви кошелька'''
     try:
         money = int(message.text)
         user = db.get_user_by_id(message.chat.id)
@@ -213,14 +210,13 @@ def transfer_money_count(message):
         
         message = bot.send_message(message.chat.id, text=f'<b>Введите номер QIWI кошелька в формате 79001112233.</b>', reply_markup=cancel_next_handlers(), parse_mode='HTML') 
         bot.register_next_step_handler(message, qiwi_account_transfer, money)
-
-    except Exception as e:
-        print(e)
+    except (ValueError, TypeError) as e:
         message = bot.send_message(message.chat.id, text=f'<b>На вашем счету {user["balance"]} руб.\nВведите сумму вывода.</b>', reply_markup=cancel_next_handlers(), parse_mode='HTML') 
         bot.register_next_step_handler(message, transfer_money_count)
 
 
 def qiwi_account_transfer(message, money):
+    '''Принимаем киви кошелек и отдаем админу на обработку'''
     try:
         qiwi_account = int(message.text)
         if len(str(qiwi_account)) != 11:
@@ -235,7 +231,6 @@ def qiwi_account_transfer(message, money):
         db.inc_value(user_id=message.chat.id, key='balance', value=-money)
         db.set_value(user_id=message.chat.id, key='temp_transfer_money', value=data)
         return bot.send_message(chat_id=message.chat.id, text='<b>Ваша заявка обрабатывается, вам придет уведомление когда администратор обработает заявку.</b>', parse_mode='HTML')
-
     except (ValueError, TypeError):
         message = bot.send_message(message.chat.id, text=f'<b>Введите номер QIWI кошелька в формате 79001112233.</b>', reply_markup=cancel_next_handlers(), parse_mode='HTML') 
         bot.register_next_step_handler(message, qiwi_account_transfer, money)

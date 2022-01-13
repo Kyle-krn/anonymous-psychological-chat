@@ -157,6 +157,14 @@ class DBclient:
                 
                 'admin_shadowing': False,                # Режим слежки от админа (используется для юзеров с жалобами по решению админа)
                 'temp_message': [],                       # Последние 100 сообщений
+
+                'favorite_chat': [],
+                'call_favorite_chat': None,
+                                        # {
+                                            # 'name': '',
+                                            # 'for': '',
+                                            # 'from': '',
+                                        # }
             }
             self.db.users.insert_one(user)
         return user
@@ -294,6 +302,9 @@ class DBclient:
             temp_message.append((message.text or message.caption))
             temp_message = temp_message[1:]
             db.set_value(user_id=user['user_id'], key='temp_message', value=temp_message)
+
+    def get_favorite_chat(self, user_id, favorite_id):
+        return db.db.users.find_one({'user_id': user_id, 'favorite_chat.user_id': favorite_id}, {'favorite_chat.$': 1})['favorite_chat'][0]
         
 
 db = DBclient()

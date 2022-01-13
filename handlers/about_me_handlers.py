@@ -45,7 +45,6 @@ def price_consult(message):
     about_me_handler(message)
 
 
-
 def my_name(message):
     '''Задать имя'''
     if not message.text:
@@ -57,6 +56,7 @@ def my_name(message):
     bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
     db.set_value(user_id=message.chat.id, key='about_me.name', value=name)
     about_me_handler(message)
+
 
 def my_about(message):
     '''Задать о себе'''

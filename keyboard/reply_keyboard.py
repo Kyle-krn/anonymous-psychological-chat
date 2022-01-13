@@ -1,5 +1,6 @@
 from telebot import types
 
+
 def main_keyboard():
     '''Главная клавиатура'''
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -14,8 +15,7 @@ def main_keyboard():
 def block_keyboard():
     '''Клавиатура заблокированного пользователя'''
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button2 = types.KeyboardButton('Служба поддержки')
-    keyboard.add(button2)
+    keyboard.add(types.KeyboardButton('Служба поддержки'))
     return keyboard
 
 
@@ -37,7 +37,9 @@ def settings_keyboard(user):
         keyboard.add(about_me_button, transfer_money)
         keyboard.add(my_premium_rating)
     keyboard.add(my_rating, top_up_account_button, my_balance)
-    # keyboard.add(top_up_account_button)
+    if user['favorite_chat'] and user['helper'] is False:
+        favorite_button = types.KeyboardButton('Избранные чаты ⭐')
+        keyboard.add(favorite_button)
     keyboard.add(back_button)
     return keyboard
 
@@ -46,18 +48,14 @@ def control_companion(next=True):
     '''Клавиатура контроля собеседника'''
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if next:
-        button1 = types.KeyboardButton('Следующий собеседник ⏭')
-        keyboard.add(button1)
-    button2 = types.KeyboardButton('Стоп ⛔️')
-    keyboard.add(button2)
+        keyboard.add(types.KeyboardButton('Следующий собеседник ⏭'))
+    keyboard.add(types.KeyboardButton('Стоп ⛔️'))
     return keyboard
+
 
 def control_companion_verif():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button1 = types.KeyboardButton('Следующий собеседник ⏭')
-    button2 = types.KeyboardButton('Начать консультацию 📒')
-    button3 = types.KeyboardButton('Стоп ⛔️')
-    keyboard.add(button1)
-    keyboard.add(button2)
-    keyboard.add(button3)
+    keyboard.add(types.KeyboardButton('Следующий собеседник ⏭'))
+    keyboard.add(types.KeyboardButton('Начать консультацию 📒'))
+    keyboard.add(types.KeyboardButton('Стоп ⛔️'))
     return keyboard

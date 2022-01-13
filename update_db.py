@@ -25,8 +25,11 @@ def update_users():
 
     db.db.users.update_many({}, {'$set': new_field})
 
-def test(val):
-    bot.send_message(chat_id=390442593, text=val)
+def test():
+    x = db.db.users.find_one({'user_id': 5073540565, 'favorite_chat.user_id': 390442593}, {'favorite_chat.$': 1})['favorite_chat'][0]
+    # db.db.users.update_one({'user_id': 5073540565}, {'$push': {'favorite_chat': {'name': 'Катя', 'user_id': 666666}}})
+    # print([i for i in x])
+    print(x)
 
 if __name__ == '__main__':
-    update_users()
+    test()

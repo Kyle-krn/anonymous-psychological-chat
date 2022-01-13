@@ -19,59 +19,56 @@ def check_premium_dialog(user):
     отрабатывает функции связанные с окончанием платного диалога, у психолога разблокируется функция пропуска, а пациент может оплатить еще 1 час и оставить отзыв
     '''
     # Нужно сократить функцию, кое-что повторяется 
-    try:
-        if user['companion_id']:
-            companion = db.get_user_by_id(user['companion_id'])
-            if user['helper'] is True and user['verified_psychologist'] is True and user['time_start_premium_dialog']:  # Если user психолог в премиум диалоге
-                start_time = user['time_start_premium_dialog']
-                if datetime.utcnow() > start_time + timedelta(hours=1):     # Если прошел час с момента старта премиум диалога
-                    data = {
-                        'start': start_time,
-                        'end': datetime.utcnow().replace(microsecond=0),
-                        'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
-                        'psy': user['user_id'],
-                        'patient': user['companion_id'],
-                        'price': user['about_me']['price']
-                    }
-                    db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)       # Пушим историю о премиум диалоге 
-                    db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)  # Переводим юзеров в режим не активного премиум диалога ("time_start_premium_dialog" is None)
+    if user['companion_id']:
+        companion = db.get_user_by_id(user['companion_id'])
+        if user['helper'] is True and user['verified_psychologist'] is True and user['time_start_premium_dialog']:  # Если user психолог в премиум диалоге
+            start_time = user['time_start_premium_dialog']
+            if datetime.utcnow() > start_time + timedelta(hours=1):     # Если прошел час с момента старта премиум диалога
+                data = {
+                    'start': start_time,
+                    'end': datetime.utcnow().replace(microsecond=0),
+                    'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
+                    'psy': user['user_id'],
+                    'patient': user['companion_id'],
+                    'price': user['about_me']['price']
+                }
+                db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)       # Пушим историю о премиум диалоге 
+                db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)  # Переводим юзеров в режим не активного премиум диалога ("time_start_premium_dialog" is None)
 
-                    db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)  # Тоже самое делаем и собеседника
-                    db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
-                    
-                    bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
-                    
-                    try:
-                        bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
-                        push_data_premium_rating(companion) # Отправляем сообщение о том что можно оставить отзыв
-                    except telebot.apihelper.ApiTelegramException:
-                        pass
-            elif user['helper'] is False and user['time_start_premium_dialog']:
-                # Повторяется, не забыть рефакнуть
-                start_time = user['time_start_premium_dialog']
-                if datetime.utcnow() > start_time + timedelta(hours=1):
-                    data = {
-                        'start': start_time,
-                        'end': datetime.utcnow().replace(microsecond=0),
-                        'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
-                        'psy': user['companion_id'],
-                        'patient': user['user_id'],
-                        'price': companion['about_me']['price']
-                    }
-                    db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)
-                    db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)
+                db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)  # Тоже самое делаем и собеседника
+                db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
+                
+                bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
+                
+                try:
+                    bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
+                    push_data_premium_rating(companion) # Отправляем сообщение о том что можно оставить отзыв
+                except telebot.apihelper.ApiTelegramException:
+                    pass
+        elif user['helper'] is False and user['time_start_premium_dialog']:
+            # Повторяется, не забыть рефакнуть
+            start_time = user['time_start_premium_dialog']
+            if datetime.utcnow() > start_time + timedelta(hours=1):
+                data = {
+                    'start': start_time,
+                    'end': datetime.utcnow().replace(microsecond=0),
+                    'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
+                    'psy': user['companion_id'],
+                    'patient': user['user_id'],
+                    'price': companion['about_me']['price']
+                }
+                db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)
+                db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)
 
-                    db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)
-                    db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
-                    
-                    bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
-                    try:
-                        bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
-                        push_data_premium_rating(user)
-                    except telebot.apihelper.ApiTelegramException:
-                        pass
-    except Exception as e:
-        print(e)
+                db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)
+                db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
+                
+                bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
+                try:
+                    bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
+                    push_data_premium_rating(user)
+                except telebot.apihelper.ApiTelegramException:
+                    pass
 
 
 def stop_patient_premium_dialog(user):
@@ -211,11 +208,27 @@ def send_start_dialog_message(user):
     bot.send_message(chat_id=user['companion_id'], text=text_for_patient, reply_markup=keyboard, parse_mode='HTML')
 
 
+def check_call_favorite_chat(message):
+    user = db.get_user_by_id(message.chat.id)
+    if user['user_id'] == user['call_favorite_chat']['user_id']:
+        '''Если верифицированный психолог начинает поиск при активной заяке его бывшего пациента на приватный диалог
+        просим сначала ответить на заявку.'''
+        pasient = db.get_user_by_id(user['call_favorite_chat']['from'])
+        text = f'<b>С вами хочет связаться пользователь #{pasient["user_id"]}. Хотите перейти в диалог с ним?\n\n'  \
+                '❗❗❗Пожалуйста, не игнорируйте это сообщение, иначе другие пользователи не смогут прислать вам заявку на диалог.</b>'
+        return bot.send_message(chat_id=message.chat.id, text=text, reply_markup=control_call_favorite_chat_keyboard(), parse_mode='HTML')
+    elif user['user_id'] == user['call_favorite_chat']['from']:
+        '''Если юзер отправил заявку на приватный диалог с избранным чатом'''
+        text = f'<b>Вы ожидаете ответа от {user["call_favorite_chat"]["name"]}. Вы можете отменить запрос, нажав на кнопку ниже.</b>'
+        return bot.send_message(chat_id=message.chat.id, text=text, reply_markup=cancel_call_favorite_chat_keyboard(), parse_mode='HTML')
+
 @bot.message_handler(regexp="(^Найти собеседника($|\s🎯))")
 def companion(message):
     '''Поиск собеседника'''
     if blocked_filter(message):    return
     user = db.get_or_create_user(message.chat)
+    if user['call_favorite_chat']:
+        return check_call_favorite_chat(message)
     if user['companion_id']:    return
     db.update_last_action_date(message.chat.id)
     if user['helper'] is None:
@@ -224,8 +237,6 @@ def companion(message):
         text = '<u><b>Ваша роль - Я хочу помочь</b></u>'
     elif user['helper'] == False: 
         text = '<u><b>Ваша роль - Мне нужна помощь</b></u>'
-    if user['helper'] is True:
-        print('1')
     if user['helper'] is True and user['verified_psychologist'] is True and user['about_me']['price'] == 0:
         return bot.send_message(chat_id=message.chat.id, text='Заполните данные, для предоставления платных услуг.', reply_markup=about_me_keyboard())
     bot.send_message(message.chat.id, text=text, parse_mode='HTML')
@@ -246,7 +257,6 @@ def next_companion(message):
     if blocked_filter(message):    return
     bot.delete_message(message.chat.id, message.message_id)
     user = db.get_user_by_id(message.chat.id)
-
     if user['helper'] is True and user['verified_psychologist'] is True and user['time_start_premium_dialog']:
         '''Не дает пропустить психологу собеседника если консультация оплачена'''
         premium_chat_time = datetime.utcnow().replace(microsecond=0) - user['time_start_premium_dialog']
@@ -254,7 +264,6 @@ def next_companion(message):
         if premium_chat_time > (60*60):
             check_premium_dialog(user)
             bot.send_message(user['user_id'], 'Время консультации закончилось, вы можете пропустить собеседника.')
-            # db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)
         else:
             return bot.send_message(user['user_id'], 'Вы не можете пропустить собеседника, время еще не вышло')
     db.update_last_action_date(message.chat.id)
@@ -265,6 +274,7 @@ def next_companion(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'next_companion')
 def next_companion_inline(call):
+    '''Следующий собеседник'''
     if blocked_filter(call.message):    return
     bot.delete_message(call.message.chat.id, call.message.message_id)
     user = db.get_user_by_id(call.message.chat.id)
@@ -309,6 +319,22 @@ def stop_companion(message):
     bot.send_message(chat_id=message.chat.id, text='Вы уверены что хотите пропустить собеседника?', reply_markup=yes_no_keyboard('stop_companion'))  
 
 
+def stop_companion(message):
+    '''Завершает поиск собеседника'''
+    user = db.get_user_by_id(message.chat.id)
+    db.push_date_in_end_dialog_time(message.chat.id) # Записываем дату и время конца диалога
+    db.inc_value(user_id=message.chat.id, key='statistic.output_finish', value=1)
+    try:
+        '''Если собеседник остановил бота или удалил телеграм'''
+        bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
+        rating_message(message)
+    except telebot.apihelper.ApiTelegramException:
+        pass
+    db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
+    db.inc_value(user_id=user['companion_id'], key='statistic.input_finish', value=1)
+    db.cancel_search(message.chat.id)
+
+
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'stop_companion')
 def stop_search_handler(call):
     '''Завершает поиск собеседника'''
@@ -321,17 +347,7 @@ def stop_search_handler(call):
             '''Принудительно закрываем консультацию если она есть'''
             stop_patient_premium_dialog(user)
         if user['companion_id']:
-            db.push_date_in_end_dialog_time(call.message.chat.id) # Записываем дату и время конца диалога
-            db.inc_value(user_id=call.message.chat.id, key='statistic.output_finish', value=1)
-            try:
-                '''Если собеседник остановил бота или удалил телеграм'''
-                bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник завершил беседу, вы можете найти нового собеседника', reply_markup=main_keyboard())
-                rating_message(call.message)
-            except telebot.apihelper.ApiTelegramException:
-                pass
-            db.push_date_in_end_dialog_time(user['companion_id']) # Записываем дату и время конца диалога
-            db.inc_value(user_id=user['companion_id'], key='statistic.input_finish', value=1)
-        db.cancel_search(call.message.chat.id)
+            stop_companion(call.message)
         bot.send_message(chat_id=call.message.chat.id, text='Вы завершили диалог.', reply_markup=main_keyboard())
 
 
