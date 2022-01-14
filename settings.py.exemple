@@ -6,6 +6,9 @@ MONGO_LINK = 'Ссылка на MongoDB'
 HOST = 'IP сервера'
 QIWI_PRIVATE_KEY = "Киви токен p2p магазина QIWI"
 
+QIWI_TOKEN = 'Киви токен api'
+QIWI_NUMBER = 'Номер от киви кошелька'
+
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///psy_chat.db'

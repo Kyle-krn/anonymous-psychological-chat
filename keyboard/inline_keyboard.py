@@ -71,6 +71,7 @@ def choise_sum_qiwi(custom_coast=None):
         custom_coast_button = types.InlineKeyboardButton(text=f'{custom_coast} р.', callback_data=f'qiwi_order~{custom_coast}')
         keyboard.add(custom_coast_button)
     keyboard.add(button, button1)
+    
     keyboard.add(button2, button3)
     keyboard.add(button4)
     return keyboard

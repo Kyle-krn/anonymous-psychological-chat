@@ -93,8 +93,7 @@ def create_qiwi_order(call):
             'В случе не оплаты, платёж автоматически отменится через час после создания заяки.'
     message = bot.send_message(call.message.chat.id, text, reply_markup=order_keyboard()) 
     bot.register_next_step_handler(message, get_qiwi_order)         # Для того что бы другие хендлеры не работали во время оплаты кидаем юзера в цикл
-
-
+    
 def get_qiwi_order(message):
     '''Отправляет сообщение с ссылкой для оплаты (сообщение блокируется, может быть отменено по кнопке "Отмена")'''
     bot.delete_message(message.chat.id, message.message_id)

@@ -299,21 +299,23 @@ def confirm_transfer_money_post(user_id):
 @login_required
 def user_verif(user_id):
     '''Верификация пользователя'''
-    if 'reject' in request.form:            # Отклонение верификации
-        filepath = f'static/verefication_doc/{user_id}/'
-        # db.update_verifed_psychologist(user_id, False)
-        db.set_value(user_id=user_id, key='verified_psychologist', value=False)
-        if os.path.exists(filepath):
-            coment = request.form['reject_coment']
-            text = '<u><b>Сообщение от администрации об отклонении верификации:</b></u>\n\n' + (coment or 'Ваши документы отклоненны по неуказаной причине')
-            shutil.rmtree(filepath)
-    if 'confirm' in request.form:           # Подтверждение верификации
-        # db.update_verifed_psychologist(user_id, True)
-        db.set_value(user_id=user_id, key='verified_psychologist', value=True)
-        text = '<u><b>Ваша заявка о верификации одобрена</b></u>\n\n'
-    message = bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
-    return redirect(url_for('user_view', user_id=user_id))
-
+    try:
+        if 'reject' in request.form:            # Отклонение верификации
+            filepath = f'static/verefication_doc/{user_id}/'
+            # db.update_verifed_psychologist(user_id, False)
+            db.set_value(user_id=user_id, key='verified_psychologist', value=False)
+            if os.path.exists(filepath):
+                coment = request.form['reject_coment']
+                text = '<u><b>Сообщение от администрации об отклонении верификации:</b></u>\n\n' + (coment or 'Ваши документы отклоненны по неуказаной причине')
+                shutil.rmtree(filepath)
+        if 'confirm' in request.form:           # Подтверждение верификации
+            # db.update_verifed_psychologist(user_id, True)
+            db.set_value(user_id=user_id, key='verified_psychologist', value=True)
+            text = '<u><b>Ваша заявка о верификации одобрена</b></u>\n\n'
+        bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
+        return redirect(url_for('user_view', user_id=user_id))
+    except Exception as e:
+        print(e)
 
 @app.route("/user/<int:user_id>/send_message",  methods=['POST'])
 @login_required
