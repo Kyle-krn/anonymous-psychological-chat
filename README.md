@@ -78,6 +78,6 @@ autorestart=true
 redirect_stderr=true
 ```
 
-# Пример ботв
+# Пример бота
 ---
 https://t.me/Veleshelpbot
