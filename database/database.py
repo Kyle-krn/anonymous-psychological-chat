@@ -147,19 +147,19 @@ class DBclient:
                                             #     'patient':
                                             # }
                                         ],
-                'complaint': [
+                'complaint': [                      # Жалобы
                             #  {
                             # 'complaint': complaint,
                             # 'date': datetime.utcnow().replace(microsecond=0),
                             # 'check_admin': False 
                             #  }
-                             ],                         # Жалобы
+                             ],                         
                 
                 'admin_shadowing': False,                # Режим слежки от админа (используется для юзеров с жалобами по решению админа)
                 'temp_message': [],                       # Последние 100 сообщений
 
-                'favorite_chat': [],
-                'call_favorite_chat': None,
+                'favorite_chat': [],                      # Избранные чаты
+                'call_favorite_chat': None,               # Данные для вызова избранного чата
                                         # {
                                             # 'name': '',
                                             # 'for': '',
