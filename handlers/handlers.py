@@ -6,12 +6,10 @@ from settings import TELEGRAM_TOKEN
 from keyboard import *
 
 
-
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 ####################################################################################################################################################
 #Блок относится к преимум чату между пациентом и психологом, решить проблему с импортами
-
 def stop_premium_dialog(user, companion, forced_stop=False):
     data = {
         'start': user['time_start_premium_dialog'],
@@ -258,7 +256,6 @@ def next_companion_inline(call):
         rating_message(call.message)
         db.next_companion(call.message.chat.id)
         companion(call.message)
-
 
 
 @bot.message_handler(regexp='(^Стоп($|\s⛔️))')
