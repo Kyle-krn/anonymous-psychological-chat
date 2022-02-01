@@ -108,7 +108,6 @@ def list_users_view(page=1):
         search_filter['verified_psychologist'] = params['verification']
     if 'search_companion_params' in params:
         if params['search_companion_params'] == 'companion':
-            # params['search_companion_params'] = {'companion_id': {'$ne': None}}
             search_filter['companion_id'] = {'$ne': None}
         elif params['search_companion_params'] == 'search':
             search_filter['search_companion'] = True
@@ -299,14 +298,12 @@ def user_verif(user_id):
     try:
         if 'reject' in request.form:            # Отклонение верификации
             filepath = f'static/verefication_doc/{user_id}/'
-            # db.update_verifed_psychologist(user_id, False)
             db.set_value(user_id=user_id, key='verified_psychologist', value=False)
             if os.path.exists(filepath):
                 coment = request.form['reject_coment']
                 text = '<u><b>Сообщение от администрации об отклонении верификации:</b></u>\n\n' + (coment or 'Ваши документы отклоненны по неуказаной причине')
                 shutil.rmtree(filepath)
         if 'confirm' in request.form:           # Подтверждение верификации
-            # db.update_verifed_psychologist(user_id, True)
             db.set_value(user_id=user_id, key='verified_psychologist', value=True)
             text = '<u><b>Ваша заявка о верификации одобрена</b></u>\n\n'
         bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
@@ -368,7 +365,6 @@ def unblocked_user(user_id):
         bot.send_message(chat_id=user_id, text=text, reply_markup=main_keyboard(), parse_mode='HTML')
     except telebot.apihelper.ApiTelegramException:
         print('chat_not_found')
-    # db.blocked_user(user_id, False)
     db.set_value(user_id=user_id, key='blocked', value=False)
     return redirect(url_for('user_view', user_id=user_id))
 
