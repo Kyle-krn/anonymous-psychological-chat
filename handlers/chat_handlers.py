@@ -1,9 +1,6 @@
-from handlers.handlers import bot, check_premium_dialog
-from database import db
-from pathlib import Path
-import os
 import telebot
-from datetime import datetime, timedelta
+from .handlers import bot, check_premium_dialog
+from database import db
 from keyboard import *
 
         

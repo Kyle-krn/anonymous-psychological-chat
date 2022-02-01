@@ -1,8 +1,8 @@
-from handlers.handlers import bot, blocked_filter
-from database import db
-from keyboard import *
 import os 
 import shutil
+from .handlers import bot, blocked_filter
+from database import db
+from keyboard import *
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cancel_veif')

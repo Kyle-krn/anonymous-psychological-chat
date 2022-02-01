@@ -1,7 +1,7 @@
-from handlers.handlers import bot 
+from datetime import datetime
+from .handlers import bot 
 from keyboard import *
 from database import db
-from datetime import datetime
 
 @bot.callback_query_handler(func=lambda call: call.data.split('~')[0] == 'complaint')
 def complaint_handlers(call):

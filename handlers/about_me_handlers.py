@@ -1,7 +1,6 @@
 from database import db
-from handlers.handlers import bot, system_message_filter, blocked_filter
+from .handlers import bot
 from keyboard import *
-import telebot 
 
 
 @bot.message_handler(regexp="(^Обо мне($|\s📖))")

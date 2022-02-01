@@ -1,12 +1,10 @@
+from datetime import datetime, timedelta
+from statistics import mean
+import telebot
 from database import db
 from settings import TELEGRAM_TOKEN
-import telebot
 from keyboard import *
-from datetime import datetime, timedelta
-import os
-import shutil
-import pytz
-from statistics import mean
+
 
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
@@ -157,7 +155,7 @@ def system_message_filter(message):
        собеседнику, а не отрабаывает опредленный хендлер'''
     user = db.get_or_create_user(message.chat)
     if user['companion_id']:
-        return chat(message)
+        return bot.send_message(chat_id=message.chat.id, text='<b>Ваше сообщение не отправлено, оно является системным и не может использоваться во время диалога!</b>', parse_mode='HTML')
 
 
 def blocked_filter(message):

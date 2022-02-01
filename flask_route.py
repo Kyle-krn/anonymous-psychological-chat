@@ -1,4 +1,11 @@
-from flask import render_template, request, abort, redirect, url_for
+import os
+import shutil
+import statistics
+import datetime
+import time
+import telebot
+from statistics import mean
+from flask import render_template, request, abort, redirect, url_for, flash
 from flask_login.utils import logout_user
 from flask_login import login_required, login_user, current_user
 from settings import app
@@ -6,18 +13,8 @@ from utils import russian_str_date, delete_microseconds
 from handlers import bot
 from keyboard import block_keyboard, main_keyboard
 from database import Users, db
-from webhook_settings import *
-from flask import jsonify
 from qiwi import qiwi_balance
-import pytz
-import os
-import shutil
-import statistics
-import datetime
-import telebot
-import time
-from statistics import mean
-
+from webhook_settings import *
 
 
 @app.context_processor

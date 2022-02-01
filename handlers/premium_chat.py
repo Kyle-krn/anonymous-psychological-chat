@@ -1,8 +1,7 @@
+from datetime import datetime
 from database import db
 from keyboard import *
-from handlers.handlers import bot, system_message_filter, blocked_filter, send_view_premium_rating
-from datetime import datetime
-from statistics import mean
+from handlers.handlers import bot, blocked_filter, send_view_premium_rating
 
  
 @bot.message_handler(regexp='(^Начать консультацию($|\s📒))')

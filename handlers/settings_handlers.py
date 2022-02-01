@@ -1,7 +1,6 @@
-from handlers.handlers import bot, system_message_filter, blocked_filter
+from .handlers import bot, system_message_filter, blocked_filter
 from database import db
 from keyboard import *
-from datetime import datetime
 
 
 @bot.message_handler(regexp="(^Настройки($|\s⚙))")

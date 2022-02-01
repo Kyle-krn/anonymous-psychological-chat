@@ -1,11 +1,10 @@
-from handlers.handlers import bot, system_message_filter, blocked_filter
+import telebot 
+from datetime import datetime
+from .handlers import bot, system_message_filter, blocked_filter
 from database import db
 from utils import generate_alphanum_random_string
 from qiwi import send_bill_api_qiwi, reject_bill_api_qiwi, check_bill_api_qiwi
 from keyboard import *
-import telebot 
-from datetime import datetime, timedelta
-from statistics import mean
 
 
 @bot.message_handler(commands=['my_balance'])
@@ -101,7 +100,7 @@ def get_qiwi_order(message):
     user = db.get_user_by_id(message.chat.id)
     payment = user['temp_payment']
     if payment is None:
-        bot.clear_step_handler_by_chat_id(chat_id=call.message.chat.id)
+        bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
         return bot.send_message(text='Ваш заказ был удалён.')
     text = f'К оплате {payment["coast_with_commission"]} рублей.\n\n' \
            f'Оплата по ссылке: {payment["pay_url"]}\n\n' \
