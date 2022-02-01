@@ -11,89 +11,54 @@ bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 ####################################################################################################################################################
 #Блок относится к преимум чату между пациентом и психологом, решить проблему с импортами
+
+def stop_premium_dialog(user, companion, forced_stop=False):
+    data = {
+        'start': user['time_start_premium_dialog'],
+        'end': datetime.utcnow().replace(microsecond=0),
+        'delta': (datetime.utcnow().replace(microsecond=0) - user['time_start_premium_dialog']).total_seconds(),
+        'psy': user['user_id'] if user['helper'] else user['companion_id'],
+        'patient': user['companion_id'] if user['helper'] else user['user_id'],
+        'price': user['about_me']['price'] if user['helper'] else companion['about_me']['price']
+    }
+
+    db.stop_premium_chat_db(user['user_id'], data)
+    db.stop_premium_chat_db(user['companion_id'], data)
+    
+    psy_id = user['user_id'] if user['helper'] else user['companion_id']
+    patient_id = user['companion_id'] if user['helper'] else user['user_id']
+
+    if forced_stop:
+        bot.send_message(chat_id=psy_id, text='<b>Ваш собеседник пропустил платный диалог, вы можете найти нового собеседника.</b>', parse_mode='HTML')
+        bot.send_message(chat_id=patient_id, text='<b>Вы пропустили платную консультацию.</b>', parse_mode='HTML')
+    else:
+        bot.send_message(chat_id=psy_id, text='<b>Время консультации прошло, ваш собеседник может оплатить еще 1 час.</b>', parse_mode='HTML')
+        bot.send_message(chat_id=patient_id, text='<b>Время консультации прошло, Вы можете оплатить еще 1 час.</b>', reply_markup=control_companion_verif(), parse_mode='HTML')
+    
+    if user['helper']:
+        return push_data_premium_rating(companion) # Отправляем сообщение о том что можно оставить отзыв
+    else:
+        return push_data_premium_rating(user)
+
+
 def check_premium_dialog(user):
     '''Функция сканирует сообщения, если у юзера активен платный диалог(В user['time_start_premium_dialog'] должна быть дата и время с началом 
     платного диалога, если None - значит нет платного диалога. Если диалог активен проверяет прошел ли час с начала платного диалога. Если час прошел,
     отрабатывает функции связанные с окончанием платного диалога, у психолога разблокируется функция пропуска, а пациент может оплатить еще 1 час и оставить отзыв
     '''
-    # Нужно сократить функцию, кое-что повторяется 
     if user['companion_id']:
         companion = db.get_user_by_id(user['companion_id'])
-        if user['helper'] is True and user['verified_psychologist'] is True and user['time_start_premium_dialog']:  # Если user психолог в премиум диалоге
+        if user['time_start_premium_dialog']:
+            '''Если user психолог в премиум диалоге'''
             start_time = user['time_start_premium_dialog']
             if datetime.utcnow() > start_time + timedelta(hours=1):     # Если прошел час с момента старта премиум диалога
-                data = {
-                    'start': start_time,
-                    'end': datetime.utcnow().replace(microsecond=0),
-                    'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
-                    'psy': user['user_id'],
-                    'patient': user['companion_id'],
-                    'price': user['about_me']['price']
-                }
-                db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)       # Пушим историю о премиум диалоге 
-                db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)  # Переводим юзеров в режим не активного премиум диалога ("time_start_premium_dialog" is None)
-
-                db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)  # Тоже самое делаем и собеседника
-                db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
-                
-                bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
-                
-                try:
-                    bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
-                    push_data_premium_rating(companion) # Отправляем сообщение о том что можно оставить отзыв
-                except telebot.apihelper.ApiTelegramException:
-                    pass
-        elif user['helper'] is False and user['time_start_premium_dialog']:
-            # Повторяется, не забыть рефакнуть
-            start_time = user['time_start_premium_dialog']
-            if datetime.utcnow() > start_time + timedelta(hours=1):
-                data = {
-                    'start': start_time,
-                    'end': datetime.utcnow().replace(microsecond=0),
-                    'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
-                    'psy': user['companion_id'],
-                    'patient': user['user_id'],
-                    'price': companion['about_me']['price']
-                }
-                db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)
-                db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)
-
-                db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)
-                db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
-                
-                bot.send_message(chat_id=user['companion_id'], text='Время консультации прошло, ваш собеседник может оплатить еще 1 час.')
-                try:
-                    bot.send_message(chat_id=user['user_id'], text='Время консультации прошло, Вы можете оплатить еще 1 час.', reply_markup=control_companion_verif())
-                    push_data_premium_rating(user)
-                except telebot.apihelper.ApiTelegramException:
-                    pass
+                return stop_premium_dialog(user, companion)
 
 
 def stop_patient_premium_dialog(user):
     '''В случае если пациент сам хочет пропустить платный час'''
-    # Возможно тоже можно сделать тут рефак и как то объеденить с функцией выше
-    # Тут почти все тоже самое что и сверху
-    start_time = user['time_start_premium_dialog']
     companion = db.get_user_by_id(user['companion_id'])
-    data = {
-            'start': start_time,
-            'end': datetime.utcnow().replace(microsecond=0),
-            'delta': (datetime.utcnow().replace(microsecond=0) - start_time).total_seconds(),
-            'psy': user['companion_id'],
-            'patient': user['user_id'],
-            'price': companion['about_me']['price']
-        }
-    db.push_value(user_id=user['user_id'], key='premium_dialog_time', value=data)
-    db.set_value(user_id=user['user_id'], key='time_start_premium_dialog', value=None)
-
-    db.push_value(user_id=user['companion_id'], key='premium_dialog_time', value=data)
-    db.set_value(user_id=user['companion_id'], key='time_start_premium_dialog', value=None)
-    bot.send_message(chat_id=user['companion_id'], text='Ваш собеседник пропустил платный диалог, вы можете найти нового собеседника')
-    try:
-        bot.send_message(chat_id=user['user_id'], text='Вы пропустили платную консультацию')
-        push_data_premium_rating(user)
-    except:
-        pass
+    stop_premium_dialog(user, companion, forced_stop=True)
 
 
 def send_view_premium_rating(user, rating_target='companion'):
@@ -219,6 +184,7 @@ def check_call_favorite_chat(message):
         '''Если юзер отправил заявку на приватный диалог с избранным чатом'''
         text = f'<b>Вы ожидаете ответа от {user["call_favorite_chat"]["name"]}. Вы можете отменить запрос, нажав на кнопку ниже.</b>'
         return bot.send_message(chat_id=message.chat.id, text=text, reply_markup=cancel_call_favorite_chat_keyboard(), parse_mode='HTML')
+
 
 @bot.message_handler(regexp="(^Найти собеседника($|\s🎯))")
 def companion(message):
